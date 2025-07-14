@@ -1,5 +1,6 @@
 use rand::Rng;
 
+use crate::app::Position;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::los;
 
@@ -30,6 +31,11 @@ impl RectangularRoom {
     pub fn inner(&self) -> impl Iterator<Item = (u16, u16)> {
         (self.y1 + 1..self.y2).flat_map(move |y| (self.x1 + 1..self.x2).map(move |x| (x, y)))
     }
+
+    // checks if this room intersects with another room
+    pub fn intersects(&self, other: &RectangularRoom) -> bool {
+        self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
+    }
 }
 
 pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> Vec<(u16, u16)> {
@@ -52,23 +58,52 @@ pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> Vec<(u16, u16)> {
     [seg_one, seg_two].concat()
 }
 
-pub fn generate_dungeon(width: u16, height: u16) -> GameMap {
+// generate a new dungeon map
+pub fn generate_dungeon(
+    max_rooms: u16,
+    room_min_size: u16,
+    room_max_size: u16,
+    width: u16,
+    height: u16,
+    player_position: &mut Position,
+) -> GameMap {
     let mut dungeon = GameMap::new(width, height);
+    let mut rooms: Vec<RectangularRoom> = Vec::new();
 
-    let room_one = RectangularRoom::new(20, 5, 10, 8);
-    let room_two = RectangularRoom::new(35, 5, 10, 8);
+    let mut rng = rand::rng();
+    for _ in 0..max_rooms {
+        let room_width = rng.random_range(room_min_size..=room_max_size);
+        let room_height = rng.random_range(room_min_size..=room_max_size);
 
-    // fill two rooms
-    for (x, y) in room_one.inner() {
-        *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
-    }
-    for (x, y) in room_two.inner() {
-        *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
-    }
+        let x = rng.random_range(0..dungeon.width - room_width);
+        let y = rng.random_range(0..dungeon.height - room_height);
 
-    // connect the rooms
-    for (x, y) in tunnel_between(room_one.center(), room_two.center()) {
-        *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+        let new_room = RectangularRoom::new(x, y, room_width, room_height);
+
+        // break if the new room intersects with a previous room
+        let has_intersection = rooms
+            .iter()
+            .fold(false, |b, room| b || room.intersects(&new_room));
+        if has_intersection {
+            continue;
+        }
+
+        // dig out the room's inner area
+        for (x, y) in new_room.inner() {
+            *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+        }
+
+        if rooms.is_empty() {
+            // player starts in the first room
+            (player_position.x, player_position.y) = new_room.center()
+        } else {
+            // dig tunnel between current room and previous
+            for (x, y) in tunnel_between(rooms.last().unwrap().center(), new_room.center()) {
+                *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+            }
+        }
+
+        rooms.push(new_room);
     }
 
     dungeon

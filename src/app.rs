@@ -1,12 +1,9 @@
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
-use hecs::World;
+use hecs::{Entity, World};
 use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
 
-use crate::{
-    gamemap::{GameMap, Tile, TileType},
-    procgen::generate_dungeon,
-};
+use crate::{gamemap::GameMap, procgen::generate_dungeon};
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -78,38 +75,54 @@ fn move_player(world: &mut World, gamemap: &GameMap, input: InputDirection) {
 pub struct App {
     world: World,
     gamemap: GameMap,
+    player: Entity,
 }
 
 impl App {
     pub fn new() -> Self {
+        let mut world = World::new();
+        let player_entity = world.spawn((
+            Player {},
+            Position { x: 25, y: 7 },
+            Renderable {
+                glyph: '@',
+                fg: Color::default(), // NOTE: default color is white text color
+                bg: Color::Reset,
+            },
+        ));
+
+        // dummy npc
+        world.spawn((
+            Position { x: 1, y: 3 },
+            Renderable {
+                glyph: 'h',
+                fg: Color::Yellow,
+                bg: Color::Reset,
+            },
+        ));
+
+        let max_rooms = 30;
+        let room_min_size = 6;
+        let room_max_size = 10;
+
+        let dungeon_width = 80;
+        let dungeon_height = 24;
+
+        let mut position = world.get::<&mut Position>(player_entity).unwrap();
+        let dungeon = generate_dungeon(
+            max_rooms,
+            room_min_size,
+            room_max_size,
+            dungeon_width,
+            dungeon_height,
+            &mut *position,
+        );
+        drop(position);
+
         Self {
-            world: {
-                let mut x = World::new();
-                x.spawn((
-                    Player {},
-                    Position { x: 25, y: 7 },
-                    Renderable {
-                        glyph: '@',
-                        fg: Color::default(), // NOTE: default color is white text color
-                        bg: Color::Reset,
-                    },
-                ));
-                x.spawn((
-                    Position { x: 1, y: 3 },
-                    Renderable {
-                        glyph: 'h',
-                        fg: Color::Yellow,
-                        bg: Color::Reset,
-                    },
-                ));
-                x
-            },
-            gamemap: {
-                // let mut gamemap = GameMap::new(80, 24);
-                // *gamemap.get_mut(3, 3) = Tile::from_type(TileType::Wall);
-                // gamemap
-                generate_dungeon(80, 24)
-            },
+            world,
+            gamemap: dungeon,
+            player: player_entity,
         }
     }
 
