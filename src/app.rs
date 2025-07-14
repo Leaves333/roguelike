@@ -4,7 +4,7 @@ use hecs::World;
 use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
-    style::{Color, Style},
+    style::Color,
     widgets::{Block, Borders, Widget},
 };
 
@@ -18,6 +18,19 @@ pub struct CharWidget {
     renderable: Renderable,
 }
 
+impl Widget for CharWidget {
+    fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
+        let tx = area.x + self.position.x as u16;
+        let ty = area.y + self.position.y as u16;
+        if tx < area.right() && ty < area.bottom() {
+            buf[(tx, ty)]
+                .set_symbol(&self.renderable.glyph.to_string())
+                .set_fg(self.renderable.fg)
+                .set_bg(self.renderable.bg);
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Position {
     pub x: i32,
@@ -27,22 +40,11 @@ pub struct Position {
 #[derive(Clone)]
 pub struct Renderable {
     pub glyph: char,
-    pub color: Color,
+    pub fg: Color,
+    pub bg: Color,
 }
 
 pub struct Player {}
-
-impl Widget for CharWidget {
-    fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
-        let tx = area.x + self.position.x as u16;
-        let ty = area.y + self.position.y as u16;
-        if tx < area.right() && ty < area.bottom() {
-            buf[(tx, ty)]
-                .set_symbol(&self.renderable.glyph.to_string())
-                .set_style(Style::default().fg(self.renderable.color));
-        }
-    }
-}
 
 enum InputDirection {
     Up,
@@ -73,42 +75,16 @@ impl App {
                     Position { x: 0, y: 0 },
                     Renderable {
                         glyph: '@',
-                        color: Color::DarkGray,
+                        fg: Color::default(), // NOTE: default color is white text color
+                        bg: Color::Reset,
                     },
                 ));
                 x.spawn((
                     Position { x: 1, y: 3 },
                     Renderable {
                         glyph: 'h',
-                        color: Color::Black,
-                    },
-                ));
-                x.spawn((
-                    Position { x: 1, y: 4 },
-                    Renderable {
-                        glyph: '@',
-                        color: Color::DarkGray,
-                    },
-                ));
-                x.spawn((
-                    Position { x: 1, y: 5 },
-                    Renderable {
-                        glyph: '@',
-                        color: Color::Gray,
-                    },
-                ));
-                x.spawn((
-                    Position { x: 1, y: 6 },
-                    Renderable {
-                        glyph: '@',
-                        color: Color::White,
-                    },
-                ));
-                x.spawn((
-                    Position { x: 1, y: 7 },
-                    Renderable {
-                        glyph: '@',
-                        color: Color::LightMagenta,
+                        fg: Color::Yellow,
+                        bg: Color::Reset,
                     },
                 ));
                 x
@@ -147,6 +123,7 @@ impl App {
 
         // Optional background box
         let block = Block::default().title("Demo").borders(Borders::ALL);
+        // .border_style(Color::White);
         frame.render_widget(block, size);
 
         // Draw the character at (x, y)

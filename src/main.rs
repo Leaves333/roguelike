@@ -1,6 +1,7 @@
 use color_eyre::Result;
 
 mod app;
+mod gamemap;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
