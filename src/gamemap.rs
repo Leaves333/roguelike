@@ -58,7 +58,7 @@ impl GameMap {
         Self {
             width,
             height,
-            tiles: vec![Tile::from_type(TileType::Floor); (width * height) as usize],
+            tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
         }
     }
 

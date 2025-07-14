@@ -1,11 +1,12 @@
-use std::thread::yield_now;
-
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::World;
 use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
 
-use crate::gamemap::{GameMap, Tile, TileType};
+use crate::{
+    gamemap::{GameMap, Tile, TileType},
+    procgen::generate_dungeon,
+};
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -86,7 +87,7 @@ impl App {
                 let mut x = World::new();
                 x.spawn((
                     Player {},
-                    Position { x: 0, y: 0 },
+                    Position { x: 25, y: 7 },
                     Renderable {
                         glyph: '@',
                         fg: Color::default(), // NOTE: default color is white text color
@@ -104,9 +105,10 @@ impl App {
                 x
             },
             gamemap: {
-                let mut gamemap = GameMap::new(80, 24);
-                *gamemap.get_mut(3, 3) = Tile::from_type(TileType::Wall);
-                gamemap
+                // let mut gamemap = GameMap::new(80, 24);
+                // *gamemap.get_mut(3, 3) = Tile::from_type(TileType::Wall);
+                // gamemap
+                generate_dungeon(80, 24)
             },
         }
     }
