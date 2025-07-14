@@ -72,7 +72,7 @@ impl GameMap {
         return &mut self.tiles[(x + y * self.width) as usize];
     }
 
-    pub fn in_bounds(&self, x: u16, y: u16) -> bool {
-        return x < self.width && y < self.height;
+    pub fn in_bounds(&self, x: i16, y: i16) -> bool {
+        return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
     }
 }

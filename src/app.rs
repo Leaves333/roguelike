@@ -1,14 +1,11 @@
+use std::thread::yield_now;
+
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::World;
-use ratatui::{
-    DefaultTerminal, Frame,
-    buffer::Buffer,
-    style::Color,
-    widgets::{Block, Borders, Widget},
-};
+use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
 
-use crate::gamemap::{self, GameMap, Tile, TileType};
+use crate::gamemap::{GameMap, Tile, TileType};
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -31,8 +28,8 @@ impl Widget for CharWidget {
 
 #[derive(Clone)]
 pub struct Position {
-    pub x: i32,
-    pub y: i32,
+    pub x: u16,
+    pub y: u16,
 }
 
 #[derive(Clone)]
@@ -51,14 +48,28 @@ enum InputDirection {
     Right,
 }
 
-fn move_player(world: &mut World, input: InputDirection) {
+fn move_entity(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
+    if gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
+        let new_x = (pos.x as i16 + dx) as u16;
+        let new_y = (pos.y as i16 + dy) as u16;
+
+        if !gamemap.get_ref(new_x, new_y).walkable {
+            return;
+        }
+
+        pos.x = new_x;
+        pos.y = new_y;
+    }
+}
+
+fn move_player(world: &mut World, gamemap: &GameMap, input: InputDirection) {
     // query for the player
     for (_entity, (pos, _player)) in world.query_mut::<(&mut Position, &Player)>() {
         match input {
-            InputDirection::Up => pos.y -= 1,
-            InputDirection::Down => pos.y += 1,
-            InputDirection::Left => pos.x -= 1,
-            InputDirection::Right => pos.x += 1,
+            InputDirection::Up => move_entity(gamemap, pos, 0, -1),
+            InputDirection::Down => move_entity(gamemap, pos, 0, 1),
+            InputDirection::Left => move_entity(gamemap, pos, -1, 0),
+            InputDirection::Right => move_entity(gamemap, pos, 1, 0),
         }
     }
 }
@@ -106,16 +117,16 @@ impl App {
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Right | KeyCode::Char('l') => {
-                        move_player(&mut self.world, InputDirection::Right);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::Right);
                     }
                     KeyCode::Left | KeyCode::Char('h') => {
-                        move_player(&mut self.world, InputDirection::Left);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::Left);
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        move_player(&mut self.world, InputDirection::Down);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::Down);
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
-                        move_player(&mut self.world, InputDirection::Up);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::Up);
                     }
                     KeyCode::Esc => {
                         break Ok(());
@@ -128,10 +139,6 @@ impl App {
 
     pub fn render(&self, frame: &mut Frame) {
         let size = frame.area();
-
-        // background box
-        // let block = Block::default().title("Demo").borders(Borders::ALL);
-        // frame.render_widget(block, size);
 
         // render tiles
         for x in 0..self.gamemap.width {
