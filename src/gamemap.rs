@@ -30,7 +30,7 @@ impl Tile {
                 transparent: false,
                 dark: Renderable {
                     glyph: '#',
-                    fg: Color::White,
+                    fg: Color::Gray,
                     bg: Color::Reset,
                 },
             },

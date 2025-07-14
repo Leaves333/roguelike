@@ -7,7 +7,7 @@ pub fn bresenham(start: (i32, i32), end: (i32, i32)) -> Vec<(i32, i32)> {
     let (x1, y1) = start;
     let (x2, y2) = end;
 
-    let dx = (x2 - y1).abs();
+    let dx = (x2 - x1).abs();
     let dy = (y2 - y1).abs();
     let stepx = { if x2 - x1 > 0 { 1 } else { -1 } };
     let stepy = { if y2 - y1 > 0 { 1 } else { -1 } };
