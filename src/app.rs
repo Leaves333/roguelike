@@ -8,9 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Widget},
 };
 
-pub struct App {
-    world: World,
-}
+use crate::gamemap::{self, GameMap, Tile, TileType};
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -65,6 +63,11 @@ fn move_player(world: &mut World, input: InputDirection) {
     }
 }
 
+pub struct App {
+    world: World,
+    gamemap: GameMap,
+}
+
 impl App {
     pub fn new() -> Self {
         Self {
@@ -88,6 +91,11 @@ impl App {
                     },
                 ));
                 x
+            },
+            gamemap: {
+                let mut gamemap = GameMap::new(80, 24);
+                *gamemap.get_mut(3, 3) = Tile::from_type(TileType::Wall);
+                gamemap
             },
         }
     }
@@ -121,12 +129,26 @@ impl App {
     pub fn render(&self, frame: &mut Frame) {
         let size = frame.area();
 
-        // Optional background box
-        let block = Block::default().title("Demo").borders(Borders::ALL);
-        // .border_style(Color::White);
-        frame.render_widget(block, size);
+        // background box
+        // let block = Block::default().title("Demo").borders(Borders::ALL);
+        // frame.render_widget(block, size);
 
-        // Draw the character at (x, y)
+        // render tiles
+        for x in 0..self.gamemap.width {
+            for y in 0..self.gamemap.height {
+                let tile = self.gamemap.get_ref(x, y);
+                let ch = CharWidget {
+                    position: Position {
+                        x: x.into(),
+                        y: y.into(),
+                    },
+                    renderable: tile.dark.clone(),
+                };
+                frame.render_widget(ch, size);
+            }
+        }
+
+        // draw the character at (x, y)
         for (_entity, (position, renderable)) in
             self.world.query::<(&Position, &Renderable)>().iter()
         {

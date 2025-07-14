@@ -2,10 +2,11 @@ use ratatui::style::Color;
 
 use crate::app::Renderable;
 
+#[derive(Clone)]
 pub struct Tile {
-    walkable: bool,
-    transparent: bool,
-    dark: Renderable,
+    pub walkable: bool,
+    pub transparent: bool,
+    pub dark: Renderable,
 }
 
 pub enum TileType {
@@ -22,7 +23,7 @@ impl Tile {
         }
     }
 
-    pub fn from_type(tile_type: TileType) -> Self {
+    pub fn from_type(tile_type: TileType) -> Tile {
         match tile_type {
             TileType::Wall => Self {
                 walkable: false,
@@ -47,8 +48,31 @@ impl Tile {
 }
 
 pub struct GameMap {
-    width: u16,
-    height: u16,
+    pub width: u16,
+    pub height: u16,
+    tiles: Vec<Tile>,
 }
 
-impl GameMap {}
+impl GameMap {
+    pub fn new(width: u16, height: u16) -> Self {
+        Self {
+            width,
+            height,
+            tiles: vec![Tile::from_type(TileType::Floor); (width * height) as usize],
+        }
+    }
+
+    // get a reference to a tile of the gamemap
+    pub fn get_ref(&self, x: u16, y: u16) -> &Tile {
+        return &self.tiles[(x + y * self.width) as usize];
+    }
+
+    // get a mutable reference to a tile of the gamemap
+    pub fn get_mut(&mut self, x: u16, y: u16) -> &mut Tile {
+        return &mut self.tiles[(x + y * self.width) as usize];
+    }
+
+    pub fn in_bounds(&self, x: u16, y: u16) -> bool {
+        return x < self.width && y < self.height;
+    }
+}
