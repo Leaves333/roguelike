@@ -1,6 +1,7 @@
 use rand::Rng;
 
 use crate::gamemap::{GameMap, Tile, TileType};
+use crate::los;
 
 struct RectangularRoom {
     x1: u16,
@@ -31,23 +32,24 @@ impl RectangularRoom {
     }
 }
 
-pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
+pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> Vec<(u16, u16)> {
     // returns an L-shaped tunnel between these two points
 
-    let (x1, y1) = start;
-    let (x2, y2) = start;
+    let (x1, y1) = (start.0 as i32, start.1 as i32);
+    let (x2, y2) = (end.0 as i32, end.1 as i32);
 
-    // TODO: implement bresenham's algo for line of sight
-
-    let (mut corner_x, mut corner_y) = (0, 0);
     let mut rng = rand::rng();
-    if rng.random() {
-        (corner_x, corner_y) = (x2, y1);
-    } else {
-        (corner_x, corner_y) = (x1, y2);
-    }
+    let (corner_x, corner_y) = { if rng.random() { (x2, y1) } else { (x1, y2) } };
 
-    (y1 + 1..y2).flat_map(move |y| (x1 + 1..x2).map(move |x| (x, y)))
+    let seg_one: Vec<(u16, u16)> = los::bresenham((x1, y1), (corner_x, corner_y))
+        .iter()
+        .map(|&(x, y)| (x as u16, y as u16))
+        .collect();
+    let seg_two: Vec<(u16, u16)> = los::bresenham((corner_x, corner_y), (x2, y2))
+        .iter()
+        .map(|&(x, y)| (x as u16, y as u16))
+        .collect();
+    [seg_one, seg_two].concat()
 }
 
 pub fn generate_dungeon(width: u16, height: u16) -> GameMap {
@@ -56,6 +58,7 @@ pub fn generate_dungeon(width: u16, height: u16) -> GameMap {
     let room_one = RectangularRoom::new(20, 5, 10, 8);
     let room_two = RectangularRoom::new(35, 5, 10, 8);
 
+    // fill two rooms
     for (x, y) in room_one.inner() {
         *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
     }
@@ -63,6 +66,10 @@ pub fn generate_dungeon(width: u16, height: u16) -> GameMap {
         *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
     }
 
+    // connect the rooms
+    for (x, y) in tunnel_between(room_one.center(), room_two.center()) {
+        *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+    }
+
     dungeon
 }
-

@@ -2,6 +2,7 @@ use color_eyre::Result;
 
 mod app;
 mod gamemap;
+mod los;
 mod procgen;
 
 fn main() -> Result<()> {
