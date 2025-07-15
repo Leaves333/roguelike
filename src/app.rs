@@ -47,10 +47,10 @@ enum InputDirection {
     Down,
     Left,
     Right,
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
+    UpLeft,
+    UpRight,
+    DownLeft,
+    DownRight,
 }
 
 fn move_entity(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
@@ -75,10 +75,10 @@ fn move_player(world: &mut World, gamemap: &GameMap, input: InputDirection) {
             InputDirection::Down => move_entity(gamemap, pos, 0, 1),
             InputDirection::Left => move_entity(gamemap, pos, -1, 0),
             InputDirection::Right => move_entity(gamemap, pos, 1, 0),
-            InputDirection::TopLeft => move_entity(gamemap, pos, -1, -1),
-            InputDirection::TopRight => move_entity(gamemap, pos, 1, -1),
-            InputDirection::BottomLeft => move_entity(gamemap, pos, -1, 1),
-            InputDirection::BottomRight => move_entity(gamemap, pos, 1, 1),
+            InputDirection::UpLeft => move_entity(gamemap, pos, -1, -1),
+            InputDirection::UpRight => move_entity(gamemap, pos, 1, -1),
+            InputDirection::DownLeft => move_entity(gamemap, pos, -1, 1),
+            InputDirection::DownRight => move_entity(gamemap, pos, 1, 1),
         }
     }
 }
@@ -160,16 +160,16 @@ impl App {
                         move_player(&mut self.world, &self.gamemap, InputDirection::Up);
                     }
                     KeyCode::Char('u') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::TopRight);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::UpRight);
                     }
                     KeyCode::Char('y') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::TopLeft);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::UpLeft);
                     }
                     KeyCode::Char('n') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::BottomRight);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::DownRight);
                     }
                     KeyCode::Char('b') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::BottomLeft);
+                        move_player(&mut self.world, &self.gamemap, InputDirection::DownLeft);
                     }
                     _ => {}
                 }

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use hecs::World;
 use ratatui::style::Color;
 
 use crate::{
@@ -20,6 +21,7 @@ pub enum TileType {
     Wall,
 }
 
+// the default renderable to display for a tile when it is not explored and not visible
 pub fn shroud_renderable() -> Renderable {
     Renderable {
         glyph: ' ',
@@ -75,6 +77,7 @@ impl Tile {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
+    pub world: World,
     tiles: Vec<Tile>,
     visible: Vec<bool>,
     explored: Vec<bool>,
@@ -85,6 +88,7 @@ impl GameMap {
         Self {
             width,
             height,
+            world: World::new(),
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
@@ -127,6 +131,8 @@ impl GameMap {
 
     // recompute visible area based on the player's fov
     pub fn update_fov(&mut self, position: &Position, radius: u16) {
+        // TODO: use a different symmetric algo to calculate line of sight
+
         self.visible.fill(false);
 
         // calculate bounds for visibility
