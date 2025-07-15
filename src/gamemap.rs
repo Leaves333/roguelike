@@ -1,6 +1,11 @@
+use std::collections::HashSet;
+
 use ratatui::style::Color;
 
-use crate::app::Renderable;
+use crate::{
+    app::{Position, Renderable},
+    los,
+};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -118,6 +123,56 @@ impl GameMap {
     // quickly check if an index is in bounds
     pub fn in_bounds(&self, x: i16, y: i16) -> bool {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
+    }
+
+    // recompute visible area based on the player's fov
+    pub fn update_fov(&mut self, position: &Position, radius: u16) {
+        self.visible.fill(false);
+
+        // calculate bounds for visibility
+        let (xlow, xhigh) = (
+            (position.x.saturating_sub(radius)).max(0),
+            (position.x + radius).min(self.width - 1),
+        );
+        let (ylow, yhigh) = (
+            (position.y.saturating_sub(radius)).max(0),
+            (position.y + radius).min(self.width - 1),
+        );
+
+        // loop through each x, y to check visibility
+        let mut visited = HashSet::new();
+        for target_x in xlow..=xhigh {
+            for target_y in ylow..=yhigh {
+                // already checked this square
+                if visited.contains(&(target_x, target_y)) {
+                    continue;
+                }
+
+                // calculate los path from player to target square
+                let path: Vec<(u16, u16)> = los::bresenham(
+                    (position.x.into(), position.y.into()),
+                    (target_x.into(), target_y.into()),
+                )
+                .iter()
+                .map(|&(x, y)| (x as u16, y as u16))
+                .collect();
+
+                // walk along the path to check for visibility
+                for (x, y) in path {
+                    visited.insert((x, y));
+                    if !self.get_ref(x, y).transparent {
+                        self.set_visible(x, y, true);
+                        break;
+                    }
+                    self.set_visible(x, y, true);
+                }
+            }
+        }
+
+        // explored |= visible
+        for (e, &v) in self.explored.iter_mut().zip(self.visible.iter()) {
+            *e |= v;
+        }
     }
 
     // helper private function for indexing the arrays

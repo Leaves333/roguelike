@@ -84,9 +84,9 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let mut world = World::new();
-        let player_entity = world.spawn((
+        let player = world.spawn((
             Player {},
-            Position { x: 25, y: 7 },
+            Position { x: 0, y: 0 },
             Renderable {
                 glyph: '@',
                 fg: Color::default(), // NOTE: default color is white text color
@@ -111,8 +111,8 @@ impl App {
         let dungeon_width = 80;
         let dungeon_height = 24;
 
-        let mut position = world.get::<&mut Position>(player_entity).unwrap();
-        let dungeon = generate_dungeon(
+        let mut position = world.get::<&mut Position>(player).unwrap();
+        let mut gamemap = generate_dungeon(
             max_rooms,
             room_min_size,
             room_max_size,
@@ -120,12 +120,14 @@ impl App {
             dungeon_height,
             &mut *position,
         );
+        gamemap.update_fov(&position, 8);
+
         drop(position);
 
         Self {
             world,
-            gamemap: dungeon,
-            player: player_entity,
+            gamemap,
+            player,
         }
     }
 
@@ -151,24 +153,17 @@ impl App {
                     }
                     _ => {}
                 }
+
+                let position = self.world.get::<&Position>(self.player).unwrap();
+                let view_radius = 8;
+                self.gamemap.update_fov(&position, view_radius);
             }
         }
     }
 
     pub fn render(&self, frame: &mut Frame) {
         self.render_map(frame);
-
-        // draw the character at (x, y)
-        let size = frame.area();
-        for (_entity, (position, renderable)) in
-            self.world.query::<(&Position, &Renderable)>().iter()
-        {
-            let ch = CharWidget {
-                position: position.clone(),
-                renderable: renderable.clone(),
-            };
-            frame.render_widget(ch, size);
-        }
+        self.render_entities(frame);
     }
 
     // render tiles in gamemap
@@ -190,6 +185,25 @@ impl App {
                 };
                 frame.render_widget(ch, frame.area());
             }
+        }
+    }
+
+    // render entities in the world
+    fn render_entities(&self, frame: &mut Frame) {
+        let size = frame.area();
+        for (_entity, (position, renderable)) in
+            self.world.query::<(&Position, &Renderable)>().iter()
+        {
+            // render only visible entities
+            if !self.gamemap.is_visible(position.x, position.y) {
+                continue;
+            }
+
+            let ch = CharWidget {
+                position: position.clone(),
+                renderable: renderable.clone(),
+            };
+            frame.render_widget(ch, size);
         }
     }
 }
