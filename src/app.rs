@@ -47,6 +47,10 @@ enum InputDirection {
     Down,
     Left,
     Right,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
 }
 
 fn move_entity(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
@@ -71,6 +75,10 @@ fn move_player(world: &mut World, gamemap: &GameMap, input: InputDirection) {
             InputDirection::Down => move_entity(gamemap, pos, 0, 1),
             InputDirection::Left => move_entity(gamemap, pos, -1, 0),
             InputDirection::Right => move_entity(gamemap, pos, 1, 0),
+            InputDirection::TopLeft => move_entity(gamemap, pos, -1, -1),
+            InputDirection::TopRight => move_entity(gamemap, pos, 1, -1),
+            InputDirection::BottomLeft => move_entity(gamemap, pos, -1, 1),
+            InputDirection::BottomRight => move_entity(gamemap, pos, 1, 1),
         }
     }
 }
@@ -136,6 +144,9 @@ impl App {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
                 match key.code {
+                    KeyCode::Esc => {
+                        break Ok(());
+                    }
                     KeyCode::Right | KeyCode::Char('l') => {
                         move_player(&mut self.world, &self.gamemap, InputDirection::Right);
                     }
@@ -148,8 +159,17 @@ impl App {
                     KeyCode::Up | KeyCode::Char('k') => {
                         move_player(&mut self.world, &self.gamemap, InputDirection::Up);
                     }
-                    KeyCode::Esc => {
-                        break Ok(());
+                    KeyCode::Char('u') => {
+                        move_player(&mut self.world, &self.gamemap, InputDirection::TopRight);
+                    }
+                    KeyCode::Char('y') => {
+                        move_player(&mut self.world, &self.gamemap, InputDirection::TopLeft);
+                    }
+                    KeyCode::Char('n') => {
+                        move_player(&mut self.world, &self.gamemap, InputDirection::BottomRight);
+                    }
+                    KeyCode::Char('b') => {
+                        move_player(&mut self.world, &self.gamemap, InputDirection::BottomLeft);
                     }
                     _ => {}
                 }
