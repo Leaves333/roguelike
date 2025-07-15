@@ -3,7 +3,10 @@ use crossterm::event::{self, Event, KeyCode};
 use hecs::{Entity, World};
 use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
 
-use crate::{gamemap::GameMap, procgen::generate_dungeon};
+use crate::{
+    gamemap::{self, GameMap},
+    procgen::generate_dungeon,
+};
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -153,24 +156,10 @@ impl App {
     }
 
     pub fn render(&self, frame: &mut Frame) {
-        let size = frame.area();
-
-        // render tiles
-        for x in 0..self.gamemap.width {
-            for y in 0..self.gamemap.height {
-                let tile = self.gamemap.get_ref(x, y);
-                let ch = CharWidget {
-                    position: Position {
-                        x: x.into(),
-                        y: y.into(),
-                    },
-                    renderable: tile.dark.clone(),
-                };
-                frame.render_widget(ch, size);
-            }
-        }
+        self.render_map(frame);
 
         // draw the character at (x, y)
+        let size = frame.area();
         for (_entity, (position, renderable)) in
             self.world.query::<(&Position, &Renderable)>().iter()
         {
@@ -179,6 +168,28 @@ impl App {
                 renderable: renderable.clone(),
             };
             frame.render_widget(ch, size);
+        }
+    }
+
+    // render tiles in gamemap
+    fn render_map(&self, frame: &mut Frame) {
+        for x in 0..self.gamemap.width {
+            for y in 0..self.gamemap.height {
+                let tile = self.gamemap.get_ref(x, y);
+                let ch = CharWidget {
+                    position: Position { x: x, y: y },
+                    renderable: {
+                        if self.gamemap.is_visible(x, y) {
+                            tile.light.clone()
+                        } else if self.gamemap.is_explored(x, y) {
+                            tile.dark.clone()
+                        } else {
+                            gamemap::shroud_renderable()
+                        }
+                    },
+                };
+                frame.render_widget(ch, frame.area());
+            }
         }
     }
 }

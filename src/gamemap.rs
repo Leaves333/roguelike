@@ -6,6 +6,7 @@ use crate::app::Renderable;
 pub struct Tile {
     pub walkable: bool,
     pub transparent: bool,
+    pub light: Renderable,
     pub dark: Renderable,
 }
 
@@ -14,11 +15,20 @@ pub enum TileType {
     Wall,
 }
 
+pub fn shroud_renderable() -> Renderable {
+    Renderable {
+        glyph: ' ',
+        fg: Color::Reset,
+        bg: Color::Reset,
+    }
+}
+
 impl Tile {
-    pub fn new(walkable: bool, transparent: bool, dark: Renderable) -> Self {
+    pub fn new(walkable: bool, transparent: bool, light: Renderable, dark: Renderable) -> Self {
         Self {
             walkable,
             transparent,
+            light,
             dark,
         }
     }
@@ -28,18 +38,28 @@ impl Tile {
             TileType::Wall => Self {
                 walkable: false,
                 transparent: false,
-                dark: Renderable {
+                light: Renderable {
                     glyph: '#',
                     fg: Color::Gray,
+                    bg: Color::Reset,
+                },
+                dark: Renderable {
+                    glyph: '#',
+                    fg: Color::DarkGray,
                     bg: Color::Reset,
                 },
             },
             TileType::Floor => Self {
                 walkable: true,
                 transparent: true,
-                dark: Renderable {
+                light: Renderable {
                     glyph: '.',
                     fg: Color::Gray,
+                    bg: Color::Reset,
+                },
+                dark: Renderable {
+                    glyph: '.',
+                    fg: Color::DarkGray,
                     bg: Color::Reset,
                 },
             },
@@ -51,6 +71,8 @@ pub struct GameMap {
     pub width: u16,
     pub height: u16,
     tiles: Vec<Tile>,
+    visible: Vec<bool>,
+    explored: Vec<bool>,
 }
 
 impl GameMap {
@@ -59,20 +81,47 @@ impl GameMap {
             width,
             height,
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
+            visible: vec![false; (width * height) as usize],
+            explored: vec![false; (width * height) as usize],
         }
     }
 
     // get a reference to a tile of the gamemap
     pub fn get_ref(&self, x: u16, y: u16) -> &Tile {
-        return &self.tiles[(x + y * self.width) as usize];
+        return &self.tiles[self.idx(x, y)];
     }
 
     // get a mutable reference to a tile of the gamemap
     pub fn get_mut(&mut self, x: u16, y: u16) -> &mut Tile {
-        return &mut self.tiles[(x + y * self.width) as usize];
+        let idx = self.idx(x, y);
+        return &mut self.tiles[idx];
     }
 
+    pub fn is_visible(&self, x: u16, y: u16) -> bool {
+        self.visible[self.idx(x, y)]
+    }
+
+    pub fn set_visible(&mut self, x: u16, y: u16, value: bool) {
+        let idx = self.idx(x, y);
+        self.visible[idx] = value;
+    }
+
+    pub fn is_explored(&self, x: u16, y: u16) -> bool {
+        self.explored[self.idx(x, y)]
+    }
+
+    pub fn set_explored(&mut self, x: u16, y: u16, value: bool) {
+        let idx = self.idx(x, y);
+        self.explored[idx] = value;
+    }
+
+    // quickly check if an index is in bounds
     pub fn in_bounds(&self, x: i16, y: i16) -> bool {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
+    }
+
+    // helper private function for indexing the arrays
+    fn idx(&self, x: u16, y: u16) -> usize {
+        (x + y * self.width) as usize
     }
 }
