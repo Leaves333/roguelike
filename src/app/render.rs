@@ -19,9 +19,10 @@ pub struct CharWidget {
 
 impl Widget for CharWidget {
     fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
-        let tx = area.x + self.position.x as u16;
-        let ty = area.y + self.position.y as u16;
-        if tx < area.right() && ty < area.bottom() {
+        // add and subtract 1 to account for borders
+        let tx = area.x + self.position.x + 1 as u16;
+        let ty = area.y + self.position.y + 1 as u16;
+        if tx < area.right() - 1 && ty < area.bottom() - 1 {
             buf[(tx, ty)]
                 .set_symbol(&self.renderable.glyph.to_string())
                 .set_fg(self.renderable.fg)
@@ -68,6 +69,9 @@ impl App {
 
     // render entities in the world
     fn render_entities(&self, frame: &mut Frame, area: layout::Rect) {
+        let block = Block::default().title("world").borders(Borders::ALL);
+        frame.render_widget(block, area);
+
         for (_entity, obj) in self.gamemap.world.query::<&Object>().iter() {
             let position = &obj.position;
             let renderable = &obj.renderable;
