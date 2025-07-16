@@ -1,5 +1,5 @@
 use hecs::{Entity, World};
-use rand::Rng;
+use rand::{Rng, random_ratio};
 
 use crate::app::Position;
 use crate::gamemap::{GameMap, Tile, TileType};
@@ -64,6 +64,7 @@ pub fn generate_dungeon(
     max_rooms: u16,
     room_min_size: u16,
     room_max_size: u16,
+    max_monsters_per_room: u16,
     width: u16,
     height: u16,
     world: World,
@@ -106,8 +107,37 @@ pub fn generate_dungeon(
             }
         }
 
+        place_entities(&new_room, &mut dungeon, max_monsters_per_room);
+
         rooms.push(new_room);
     }
 
     dungeon
+}
+
+fn place_entities(room: &RectangularRoom, dungeon: &mut GameMap, maximum_monsters: u16) {
+    let mut rng = rand::rng();
+    let number_of_monsters = rng.random_range(0..=maximum_monsters);
+
+    for _ in 0..number_of_monsters {
+        let x = rng.random_range((room.x1 + 1)..room.x2);
+        let y = rng.random_range((room.y1 + 1)..room.y2);
+
+        // check if it intersects with any entities
+        let bad_placement = dungeon
+            .world
+            .query::<&Position>()
+            .iter() // query for all the entities...
+            .map(|(_entity, pos)| pos) // get only the positions...
+            .fold(false, |valid, pos| valid || (pos.x == x && pos.y == y)); // check if equal
+        if bad_placement {
+            continue;
+        }
+
+        if random_ratio(4, 5) {
+            dungeon.world.spawn(entities::orc(x, y));
+        } else {
+            dungeon.world.spawn(entities::troll(x, y));
+        }
+    }
 }

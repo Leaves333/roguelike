@@ -95,6 +95,7 @@ impl App {
         let max_rooms = 30;
         let room_min_size = 6;
         let room_max_size = 10;
+        let max_monsters_per_room = 2;
 
         let dungeon_width = 80;
         let dungeon_height = 24;
@@ -103,6 +104,7 @@ impl App {
             max_rooms,
             room_min_size,
             room_max_size,
+            max_monsters_per_room,
             dungeon_width,
             dungeon_height,
             world,
