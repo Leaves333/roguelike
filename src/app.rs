@@ -40,36 +40,43 @@ enum InputDirection {
     DownRight,
 }
 
-fn move_position(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
-    if gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
-        let new_x = (pos.x as i16 + dx) as u16;
-        let new_y = (pos.y as i16 + dy) as u16;
+fn move_position(entity: Entity, gamemap: &GameMap, dx: i16, dy: i16) {
+    // borrow the object just to read its position...
+    let obj = gamemap.world.get::<&Object>(entity).unwrap();
+    let pos = &obj.position;
 
-        // BUG: only mutably borrow pos after needing to modify!
-        if !gamemap.get_ref(new_x, new_y).walkable {
-            return; // destination is blocked by a tile
-        }
-        if gamemap.get_blocking_entity_at_location(new_x, new_y) != None {
-            return; // destination is blocked by an object
-        }
-
-        pos.x = new_x;
-        pos.y = new_y;
+    if !gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
+        return; // destination is not in bounds
     }
+
+    let new_x = (pos.x as i16 + dx) as u16;
+    let new_y = (pos.y as i16 + dy) as u16;
+
+    if !gamemap.get_ref(new_x, new_y).walkable {
+        return; // destination is blocked by a tile
+    }
+    if gamemap.get_blocking_entity_at_location(new_x, new_y) != None {
+        return; // destination is blocked by an object
+    }
+
+    // now borrow it mutably to move it
+    drop(obj);
+    let mut obj = gamemap.world.get::<&mut Object>(entity).unwrap();
+    let pos = &mut obj.position;
+    pos.x = new_x;
+    pos.y = new_y;
 }
 
 fn move_entity(entity: Entity, gamemap: &mut GameMap, input: InputDirection) {
-    let mut obj = gamemap.world.get::<&mut Object>(entity).unwrap();
-    let mut position = &mut obj.position;
     match input {
-        InputDirection::Up => move_position(gamemap, &mut position, 0, -1),
-        InputDirection::Down => move_position(gamemap, &mut position, 0, 1),
-        InputDirection::Left => move_position(gamemap, &mut position, -1, 0),
-        InputDirection::Right => move_position(gamemap, &mut position, 1, 0),
-        InputDirection::UpLeft => move_position(gamemap, &mut position, -1, -1),
-        InputDirection::UpRight => move_position(gamemap, &mut position, 1, -1),
-        InputDirection::DownLeft => move_position(gamemap, &mut position, -1, 1),
-        InputDirection::DownRight => move_position(gamemap, &mut position, 1, 1),
+        InputDirection::Up => move_position(entity, gamemap, 0, -1),
+        InputDirection::Down => move_position(entity, gamemap, 0, 1),
+        InputDirection::Left => move_position(entity, gamemap, -1, 0),
+        InputDirection::Right => move_position(entity, gamemap, 1, 0),
+        InputDirection::UpLeft => move_position(entity, gamemap, -1, -1),
+        InputDirection::UpRight => move_position(entity, gamemap, 1, -1),
+        InputDirection::DownLeft => move_position(entity, gamemap, -1, 1),
+        InputDirection::DownRight => move_position(entity, gamemap, 1, 1),
     }
 }
 

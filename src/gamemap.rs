@@ -131,7 +131,9 @@ impl GameMap {
 
     pub fn get_blocking_entity_at_location(&self, x: u16, y: u16) -> Option<Entity> {
         for (entity, obj) in self.world.query::<&Object>().iter() {
-            // if obj.blocks_movement && obj.position.x == x && obj.position.y == y {}
+            if obj.blocks_movement && obj.position.x == x && obj.position.y == y {
+                return Some(entity);
+            }
         }
         return None;
     }
