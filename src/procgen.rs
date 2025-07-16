@@ -1,7 +1,7 @@
 use hecs::{Entity, World};
 use rand::{Rng, random_ratio};
 
-use crate::components::{Object, Position};
+use crate::components::Object;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
 

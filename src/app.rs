@@ -40,45 +40,106 @@ enum InputDirection {
     DownRight,
 }
 
-fn move_position(entity: Entity, gamemap: &GameMap, dx: i16, dy: i16) {
-    // borrow the object just to read its position...
-    let obj = gamemap.world.get::<&Object>(entity).unwrap();
-    let pos = &obj.position;
+fn direction_to_deltas(direction: InputDirection) -> (i16, i16) {
+    match direction {
+        InputDirection::Up => (0, -1),
+        InputDirection::Down => (0, 1),
+        InputDirection::Left => (-1, 0),
+        InputDirection::Right => (1, 0),
+        InputDirection::UpLeft => (-1, -1),
+        InputDirection::UpRight => (1, -1),
+        InputDirection::DownLeft => (-1, 1),
+        InputDirection::DownRight => (1, 1),
+    }
+}
 
+// get a clone of the position of an entity in the world
+fn get_entity_position(entity: Entity, gamemap: &GameMap) -> Position {
+    gamemap
+        .world
+        .get::<&Object>(entity)
+        .unwrap()
+        .position
+        .clone()
+}
+
+fn move_action(entity: Entity, gamemap: &GameMap, (dx, dy): (i16, i16)) {
+    // NOTE: redundant check, check should happen when deciding which action to take
+    let pos = get_entity_position(entity, gamemap);
     if !gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
         return; // destination is not in bounds
     }
+    let (new_x, new_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
 
-    let new_x = (pos.x as i16 + dx) as u16;
-    let new_y = (pos.y as i16 + dy) as u16;
-
+    // NOTE: this does need to get checked.
     if !gamemap.get_ref(new_x, new_y).walkable {
         return; // destination is blocked by a tile
     }
+
+    // NOTE: hypothetically this shouldn't need to be checked
     if gamemap.get_blocking_entity_at_location(new_x, new_y) != None {
         return; // destination is blocked by an object
     }
 
     // now borrow it mutably to move it
-    drop(obj);
     let mut obj = gamemap.world.get::<&mut Object>(entity).unwrap();
     let pos = &mut obj.position;
     pos.x = new_x;
     pos.y = new_y;
 }
 
-fn move_entity(entity: Entity, gamemap: &mut GameMap, input: InputDirection) {
-    match input {
-        InputDirection::Up => move_position(entity, gamemap, 0, -1),
-        InputDirection::Down => move_position(entity, gamemap, 0, 1),
-        InputDirection::Left => move_position(entity, gamemap, -1, 0),
-        InputDirection::Right => move_position(entity, gamemap, 1, 0),
-        InputDirection::UpLeft => move_position(entity, gamemap, -1, -1),
-        InputDirection::UpRight => move_position(entity, gamemap, 1, -1),
-        InputDirection::DownLeft => move_position(entity, gamemap, -1, 1),
-        InputDirection::DownRight => move_position(entity, gamemap, 1, 1),
+fn melee_action(entity: Entity, gamemap: &GameMap, (dx, dy): (i16, i16)) {
+    // NOTE: redundant check, check should happen when deciding which action to take
+    let pos = get_entity_position(entity, gamemap);
+    if !gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
+        return; // destination is not in bounds
     }
+    let (new_x, new_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
+
+    let target = match gamemap.get_blocking_entity_at_location(new_x, new_y) {
+        Some(x) => x,
+        None => {
+            return;
+        }
+    };
+
+    // TODO: implement actual melee attack code
+    let obj = gamemap.world.get::<&Object>(target).unwrap();
+    println!("you bumped into the {}...", obj.name);
 }
+
+fn bump_action(entity: Entity, gamemap: &GameMap, direction: InputDirection) {
+    // NOTE: redundant check, check should happen when deciding which action to take
+    let pos = get_entity_position(entity, gamemap);
+    let deltas = direction_to_deltas(direction);
+    let (dx, dy) = deltas;
+    if !gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
+        return; // destination is not in bounds
+    }
+    let (new_x, new_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
+
+    match gamemap.get_blocking_entity_at_location(new_x, new_y) {
+        Some(_) => {
+            melee_action(entity, gamemap, deltas);
+        }
+        None => {
+            move_action(entity, gamemap, deltas);
+        }
+    };
+}
+
+// fn move_entity(entity: Entity, gamemap: &mut GameMap, input: InputDirection) {
+//     match input {
+//         InputDirection::Up => move_position(entity, gamemap, 0, -1),
+//         InputDirection::Down => move_position(entity, gamemap, 0, 1),
+//         InputDirection::Left => move_position(entity, gamemap, -1, 0),
+//         InputDirection::Right => move_position(entity, gamemap, 1, 0),
+//         InputDirection::UpLeft => move_position(entity, gamemap, -1, -1),
+//         InputDirection::UpRight => move_position(entity, gamemap, 1, -1),
+//         InputDirection::DownLeft => move_position(entity, gamemap, -1, 1),
+//         InputDirection::DownRight => move_position(entity, gamemap, 1, 1),
+//     }
+// }
 
 pub struct App {
     gamemap: GameMap,
@@ -123,28 +184,28 @@ impl App {
                         break Ok(());
                     }
                     KeyCode::Right | KeyCode::Char('l') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::Right);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::Right);
                     }
                     KeyCode::Left | KeyCode::Char('h') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::Left);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::Left);
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::Down);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::Down);
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::Up);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::Up);
                     }
                     KeyCode::Char('u') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::UpRight);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::UpRight);
                     }
                     KeyCode::Char('y') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::UpLeft);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::UpLeft);
                     }
                     KeyCode::Char('n') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::DownRight);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::DownRight);
                     }
                     KeyCode::Char('b') => {
-                        move_entity(self.player, &mut self.gamemap, InputDirection::DownLeft);
+                        bump_action(self.player, &mut self.gamemap, InputDirection::DownLeft);
                     }
                     _ => {}
                 }
@@ -166,7 +227,7 @@ impl App {
             for y in 0..self.gamemap.height {
                 let tile = self.gamemap.get_ref(x, y);
                 let ch = CharWidget {
-                    position: Position { x: x, y: y },
+                    position: Position { x, y },
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
                             tile.light.clone()
@@ -185,7 +246,7 @@ impl App {
     // render entities in the world
     fn render_entities(&self, frame: &mut Frame) {
         let size = frame.area();
-        for (_entity, obj) in self.gamemap.world.query::<(&Object)>().iter() {
+        for (_entity, obj) in self.gamemap.world.query::<&Object>().iter() {
             let position = &obj.position;
             let renderable = &obj.renderable;
 
