@@ -4,7 +4,7 @@ use hecs::{Entity, World};
 use ratatui::{DefaultTerminal, Frame, buffer::Buffer, widgets::Widget};
 
 use crate::{
-    components::{Position, Renderable},
+    components::{Object, Position, Renderable},
     entities,
     gamemap::{self, GameMap},
     procgen::generate_dungeon,
@@ -55,7 +55,8 @@ fn move_position(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
 }
 
 fn move_entity(entity: Entity, gamemap: &mut GameMap, input: InputDirection) {
-    let mut position = gamemap.world.get::<&mut Position>(entity).unwrap();
+    let mut obj = gamemap.world.get::<&mut Object>(entity).unwrap();
+    let mut position = &mut obj.position;
     match input {
         InputDirection::Up => move_position(gamemap, &mut position, 0, -1),
         InputDirection::Down => move_position(gamemap, &mut position, 0, 1),
@@ -173,12 +174,10 @@ impl App {
     // render entities in the world
     fn render_entities(&self, frame: &mut Frame) {
         let size = frame.area();
-        for (_entity, (position, renderable)) in self
-            .gamemap
-            .world
-            .query::<(&Position, &Renderable)>()
-            .iter()
-        {
+        for (_entity, obj) in self.gamemap.world.query::<(&Object)>().iter() {
+            let position = &obj.position;
+            let renderable = &obj.renderable;
+
             // render only visible entities
             if !self.gamemap.is_visible(position.x, position.y) {
                 continue;

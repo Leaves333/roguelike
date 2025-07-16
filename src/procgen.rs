@@ -1,7 +1,7 @@
 use hecs::{Entity, World};
 use rand::{Rng, random_ratio};
 
-use crate::app::Position;
+use crate::components::{Object, Position};
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
 
@@ -98,7 +98,7 @@ pub fn generate_dungeon(
 
         if rooms.is_empty() {
             // player starts in the first room
-            let mut position = dungeon.world.get::<&mut Position>(player).unwrap();
+            let position = &mut dungeon.world.get::<&mut Object>(player).unwrap().position;
             (position.x, position.y) = new_room.center();
         } else {
             // dig tunnel between current room and previous
@@ -126,9 +126,9 @@ fn place_entities(room: &RectangularRoom, dungeon: &mut GameMap, maximum_monster
         // check if it intersects with any entities
         let bad_placement = dungeon
             .world
-            .query::<&Position>()
+            .query::<&Object>()
             .iter() // query for all the entities...
-            .map(|(_entity, pos)| pos) // get only the positions...
+            .map(|(_entity, object)| &object.position) // get only the positions...
             .fold(false, |valid, pos| valid || (pos.x == x && pos.y == y)); // check if equal
         if bad_placement {
             continue;

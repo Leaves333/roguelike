@@ -1,3 +1,5 @@
+use ratatui::style::Color;
+
 #[derive(Clone)]
 pub struct Position {
     pub x: u16,

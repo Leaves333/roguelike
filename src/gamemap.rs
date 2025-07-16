@@ -4,7 +4,7 @@ use hecs::{Entity, World};
 use ratatui::style::Color;
 
 use crate::{
-    app::{Position, Renderable},
+    components::{Object, Renderable},
     los,
 };
 
@@ -133,9 +133,11 @@ impl GameMap {
     pub fn update_fov(&mut self, player: Entity, radius: u16) {
         // TODO: use a different symmetric algo to calculate line of sight
 
-        let position = self.world.get::<&Position>(player).unwrap();
+        let player_object = self.world.get::<&Object>(player).unwrap();
+        let position = &player_object.position;
         let (player_x, player_y) = (position.x, position.y);
-        drop(position);
+        drop(player_object);
+
         self.visible.fill(false);
 
         // calculate bounds for visibility
