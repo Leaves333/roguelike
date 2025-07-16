@@ -7,8 +7,6 @@ use crate::components::{Object, Position};
 
 use super::App;
 
-// contains the run function of the engine, and deals with input events
-
 enum InputDirection {
     Up,
     Down,
@@ -104,7 +102,7 @@ impl App {
         pos.y = target_y;
     }
 
-    fn melee_action(&self, entity: Entity, (target_x, target_y): (u16, u16)) {
+    fn melee_action(&mut self, entity: Entity, (target_x, target_y): (u16, u16)) {
         let target = match self
             .gamemap
             .get_blocking_entity_at_location(target_x, target_y)
@@ -118,10 +116,14 @@ impl App {
         // TODO: implement actual melee attack code
         let source_obj = self.gamemap.world.get::<&Object>(entity).unwrap();
         let target_obj = self.gamemap.world.get::<&Object>(target).unwrap();
-        println!("{} bumped into the {}...", source_obj.name, target_obj.name);
+
+        self.log.push(format!(
+            "{} bumped into the {}",
+            source_obj.name, target_obj.name
+        ));
     }
 
-    fn bump_action(&self, entity: Entity, direction: InputDirection) {
+    fn bump_action(&mut self, entity: Entity, direction: InputDirection) {
         // check that action target is in bounds
         let pos = self.get_entity_position(entity);
         let deltas = direction_to_deltas(direction);

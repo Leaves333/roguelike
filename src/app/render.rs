@@ -1,4 +1,9 @@
-use ratatui::{Frame, buffer::Buffer, layout, widgets::Widget};
+use ratatui::{
+    Frame,
+    buffer::Buffer,
+    layout,
+    widgets::{Block, Borders, List, ListItem, Widget},
+};
 
 use super::App;
 use crate::{
@@ -36,6 +41,7 @@ impl App {
             .split(frame.area());
         self.render_map(frame, layout[0]);
         self.render_entities(frame, layout[0]);
+        self.render_log(frame, layout[1]);
     }
 
     // render tiles in gamemap
@@ -80,6 +86,10 @@ impl App {
     }
 
     fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
-        todo!()
+        let items = self.log.iter().rev().map(|s| ListItem::new(s.as_str()));
+        let list = List::new(items)
+            .direction(ratatui::widgets::ListDirection::TopToBottom)
+            .block(Block::default().title("log").borders(Borders::ALL));
+        frame.render_widget(list, area);
     }
 }
