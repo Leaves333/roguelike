@@ -4,6 +4,7 @@ use hecs::{Entity, World};
 use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
 
 use crate::{
+    entities,
     gamemap::{self, GameMap},
     procgen::generate_dungeon,
 };
@@ -53,7 +54,7 @@ enum InputDirection {
     DownRight,
 }
 
-fn move_entity(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
+fn move_position(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
     if gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
         let new_x = (pos.x as i16 + dx) as u16;
         let new_y = (pos.y as i16 + dy) as u16;
@@ -67,24 +68,21 @@ fn move_entity(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
     }
 }
 
-fn move_player(world: &mut World, gamemap: &GameMap, input: InputDirection) {
-    // query for the player
-    for (_entity, (pos, _player)) in world.query_mut::<(&mut Position, &Player)>() {
-        match input {
-            InputDirection::Up => move_entity(gamemap, pos, 0, -1),
-            InputDirection::Down => move_entity(gamemap, pos, 0, 1),
-            InputDirection::Left => move_entity(gamemap, pos, -1, 0),
-            InputDirection::Right => move_entity(gamemap, pos, 1, 0),
-            InputDirection::UpLeft => move_entity(gamemap, pos, -1, -1),
-            InputDirection::UpRight => move_entity(gamemap, pos, 1, -1),
-            InputDirection::DownLeft => move_entity(gamemap, pos, -1, 1),
-            InputDirection::DownRight => move_entity(gamemap, pos, 1, 1),
-        }
+fn move_entity(entity: Entity, gamemap: &mut GameMap, input: InputDirection) {
+    let mut position = gamemap.world.get::<&mut Position>(entity).unwrap();
+    match input {
+        InputDirection::Up => move_position(gamemap, &mut position, 0, -1),
+        InputDirection::Down => move_position(gamemap, &mut position, 0, 1),
+        InputDirection::Left => move_position(gamemap, &mut position, -1, 0),
+        InputDirection::Right => move_position(gamemap, &mut position, 1, 0),
+        InputDirection::UpLeft => move_position(gamemap, &mut position, -1, -1),
+        InputDirection::UpRight => move_position(gamemap, &mut position, 1, -1),
+        InputDirection::DownLeft => move_position(gamemap, &mut position, -1, 1),
+        InputDirection::DownRight => move_position(gamemap, &mut position, 1, 1),
     }
 }
 
 pub struct App {
-    world: World,
     gamemap: GameMap,
     player: Entity,
 }
@@ -92,25 +90,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let mut world = World::new();
-        let player = world.spawn((
-            Player {},
-            Position { x: 0, y: 0 },
-            Renderable {
-                glyph: '@',
-                fg: Color::default(), // NOTE: default color is white text color
-                bg: Color::Reset,
-            },
-        ));
-
-        // dummy npc
-        world.spawn((
-            Position { x: 1, y: 3 },
-            Renderable {
-                glyph: 'h',
-                fg: Color::Yellow,
-                bg: Color::Reset,
-            },
-        ));
+        let player = world.spawn(entities::player(0, 0));
 
         let max_rooms = 30;
         let room_min_size = 6;
@@ -119,24 +99,19 @@ impl App {
         let dungeon_width = 80;
         let dungeon_height = 24;
 
-        let mut position = world.get::<&mut Position>(player).unwrap();
         let mut gamemap = generate_dungeon(
             max_rooms,
             room_min_size,
             room_max_size,
             dungeon_width,
             dungeon_height,
-            &mut *position,
-        );
-        gamemap.update_fov(&position, 8);
-
-        drop(position);
-
-        Self {
             world,
-            gamemap,
             player,
-        }
+        );
+
+        gamemap.update_fov(player, 8);
+
+        Self { gamemap, player }
     }
 
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -148,35 +123,34 @@ impl App {
                         break Ok(());
                     }
                     KeyCode::Right | KeyCode::Char('l') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::Right);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::Right);
                     }
                     KeyCode::Left | KeyCode::Char('h') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::Left);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::Left);
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::Down);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::Down);
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::Up);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::Up);
                     }
                     KeyCode::Char('u') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::UpRight);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::UpRight);
                     }
                     KeyCode::Char('y') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::UpLeft);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::UpLeft);
                     }
                     KeyCode::Char('n') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::DownRight);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::DownRight);
                     }
                     KeyCode::Char('b') => {
-                        move_player(&mut self.world, &self.gamemap, InputDirection::DownLeft);
+                        move_entity(self.player, &mut self.gamemap, InputDirection::DownLeft);
                     }
                     _ => {}
                 }
 
-                let position = self.world.get::<&Position>(self.player).unwrap();
                 let view_radius = 8;
-                self.gamemap.update_fov(&position, view_radius);
+                self.gamemap.update_fov(self.player, view_radius);
             }
         }
     }
@@ -211,8 +185,11 @@ impl App {
     // render entities in the world
     fn render_entities(&self, frame: &mut Frame) {
         let size = frame.area();
-        for (_entity, (position, renderable)) in
-            self.world.query::<(&Position, &Renderable)>().iter()
+        for (_entity, (position, renderable)) in self
+            .gamemap
+            .world
+            .query::<(&Position, &Renderable)>()
+            .iter()
         {
             // render only visible entities
             if !self.gamemap.is_visible(position.x, position.y) {

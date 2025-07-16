@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use hecs::World;
+use hecs::{Entity, World};
 use ratatui::style::Color;
 
 use crate::{
@@ -84,11 +84,11 @@ pub struct GameMap {
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(width: u16, height: u16, world: World) -> Self {
         Self {
             width,
             height,
-            world: World::new(),
+            world,
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
@@ -130,19 +130,22 @@ impl GameMap {
     }
 
     // recompute visible area based on the player's fov
-    pub fn update_fov(&mut self, position: &Position, radius: u16) {
+    pub fn update_fov(&mut self, player: Entity, radius: u16) {
         // TODO: use a different symmetric algo to calculate line of sight
 
+        let position = self.world.get::<&Position>(player).unwrap();
+        let (player_x, player_y) = (position.x, position.y);
+        drop(position);
         self.visible.fill(false);
 
         // calculate bounds for visibility
         let (xlow, xhigh) = (
-            (position.x.saturating_sub(radius)).max(0),
-            (position.x + radius).min(self.width - 1),
+            (player_x.saturating_sub(radius)).max(0),
+            (player_x + radius).min(self.width - 1),
         );
         let (ylow, yhigh) = (
-            (position.y.saturating_sub(radius)).max(0),
-            (position.y + radius).min(self.width - 1),
+            (player_y.saturating_sub(radius)).max(0),
+            (player_y + radius).min(self.width - 1),
         );
 
         // loop through each x, y to check visibility
@@ -156,7 +159,7 @@ impl GameMap {
 
                 // calculate los path from player to target square
                 let path: Vec<(u16, u16)> = los::bresenham(
-                    (position.x.into(), position.y.into()),
+                    (player_x.into(), player_y.into()),
                     (target_x.into(), target_y.into()),
                 )
                 .iter()

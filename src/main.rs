@@ -1,6 +1,7 @@
 use color_eyre::Result;
 
 mod app;
+mod entities;
 mod gamemap;
 mod los;
 mod procgen;

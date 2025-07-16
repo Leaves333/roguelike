@@ -1,8 +1,9 @@
+use hecs::{Entity, World};
 use rand::Rng;
 
 use crate::app::Position;
 use crate::gamemap::{GameMap, Tile, TileType};
-use crate::los;
+use crate::{entities, los};
 
 struct RectangularRoom {
     x1: u16,
@@ -65,9 +66,10 @@ pub fn generate_dungeon(
     room_max_size: u16,
     width: u16,
     height: u16,
-    player_position: &mut Position,
+    world: World,
+    player: Entity,
 ) -> GameMap {
-    let mut dungeon = GameMap::new(width, height);
+    let mut dungeon = GameMap::new(width, height, world);
     let mut rooms: Vec<RectangularRoom> = Vec::new();
 
     let mut rng = rand::rng();
@@ -95,7 +97,8 @@ pub fn generate_dungeon(
 
         if rooms.is_empty() {
             // player starts in the first room
-            (player_position.x, player_position.y) = new_room.center()
+            let mut position = dungeon.world.get::<&mut Position>(player).unwrap();
+            (position.x, position.y) = new_room.center();
         } else {
             // dig tunnel between current room and previous
             for (x, y) in tunnel_between(rooms.last().unwrap().center(), new_room.center()) {
