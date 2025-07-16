@@ -1,9 +1,10 @@
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::{Entity, World};
-use ratatui::{DefaultTerminal, Frame, buffer::Buffer, style::Color, widgets::Widget};
+use ratatui::{DefaultTerminal, Frame, buffer::Buffer, widgets::Widget};
 
 use crate::{
+    components::{Position, Renderable},
     entities,
     gamemap::{self, GameMap},
     procgen::generate_dungeon,
@@ -27,21 +28,6 @@ impl Widget for CharWidget {
         }
     }
 }
-
-#[derive(Clone)]
-pub struct Position {
-    pub x: u16,
-    pub y: u16,
-}
-
-#[derive(Clone)]
-pub struct Renderable {
-    pub glyph: char,
-    pub fg: Color,
-    pub bg: Color,
-}
-
-pub struct Player {}
 
 enum InputDirection {
     Up,
