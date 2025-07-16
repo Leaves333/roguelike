@@ -129,6 +129,13 @@ impl GameMap {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
     }
 
+    pub fn get_blocking_entity_at_location(&self, x: u16, y: u16) -> Option<Entity> {
+        for (entity, obj) in self.world.query::<&Object>().iter() {
+            // if obj.blocks_movement && obj.position.x == x && obj.position.y == y {}
+        }
+        return None;
+    }
+
     // recompute visible area based on the player's fov
     pub fn update_fov(&mut self, player: Entity, radius: u16) {
         // TODO: use a different symmetric algo to calculate line of sight

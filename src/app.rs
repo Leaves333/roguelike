@@ -45,8 +45,12 @@ fn move_position(gamemap: &GameMap, pos: &mut Position, dx: i16, dy: i16) {
         let new_x = (pos.x as i16 + dx) as u16;
         let new_y = (pos.y as i16 + dy) as u16;
 
+        // BUG: only mutably borrow pos after needing to modify!
         if !gamemap.get_ref(new_x, new_y).walkable {
-            return;
+            return; // destination is blocked by a tile
+        }
+        if gamemap.get_blocking_entity_at_location(new_x, new_y) != None {
+            return; // destination is blocked by an object
         }
 
         pos.x = new_x;
