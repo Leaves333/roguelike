@@ -1,7 +1,8 @@
 # roguelike
 
 i wanna make a roguelike!!!
-[[https://www.reddit.com/r/roguelikedev/comments/1luh8og/roguelikedev_does_the_complete_roguelike_tutorial/]]
+
+[https://www.reddit.com/r/roguelikedev/comments/1luh8og/roguelikedev_does_the_complete_roguelike_tutorial/]
 
 
 ## libraries to consider
@@ -15,11 +16,12 @@ graphical i'll work on it later...
 
 ## goals
 
-- [ ] generic entities
-- [ ] map gen
-    - [ ] procedural generation???
-    - [ ] field of view
+- [x] generic entities
+- [x] map gen
+    - [x] procedural generation???
+    - [x] field of view
 - [ ] combat
+    - [ ] pathfinding
     - [ ] health and damage
     - [ ] monster ai
 - [ ] interface

@@ -5,6 +5,7 @@ mod components;
 mod entities;
 mod gamemap;
 mod los;
+mod pathfinding;
 mod procgen;
 
 fn main() -> Result<()> {

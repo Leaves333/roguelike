@@ -22,3 +22,23 @@ pub struct Object {
 }
 
 pub struct Player {}
+
+#[derive(Clone)]
+pub struct Fighter {
+    pub max_hp: u16,
+    hp: u16,
+    pub defense: i16,
+    pub power: i16,
+}
+
+impl Fighter {
+    pub fn get_hp(&self) -> u16 {
+        self.hp
+    }
+
+    pub fn set_hp(&mut self, value: u16) {
+        self.hp = value.min(self.max_hp);
+    }
+}
+
+pub struct MeleeAI {}

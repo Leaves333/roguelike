@@ -36,6 +36,7 @@ impl App {
         loop {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
+                // player takes an action...
                 match key.code {
                     KeyCode::Esc => {
                         break Ok(());
@@ -66,10 +67,25 @@ impl App {
                     }
                     _ => {}
                 }
+
+                // monsters act...
+                self.handle_monster_turns();
+
+                // update fov
                 let view_radius = 8;
                 self.gamemap.update_fov(self.player, view_radius);
             }
         }
+    }
+
+    // makes all monsters take a turn...
+    fn handle_monster_turns(&self) {
+        self.handle_melee_ai();
+    }
+
+    // moves all entities with melee ai
+    fn handle_melee_ai(&self) {
+        todo!()
     }
 
     // get a clone of the position of an entity in the world
