@@ -1,7 +1,7 @@
 use crate::gamemap::{coords_to_idx, idx_to_coords};
 use std::{collections::BinaryHeap, u32};
 
-struct Pathfinder {
+pub struct Pathfinder {
     width: u16,       // width of the board
     height: u16,      // height of the board
     costs: Vec<u32>,  // multiplier for edges that move into this cell
@@ -85,6 +85,10 @@ impl Pathfinder {
                 let (target_x, target_y) = ((x as i16 + dx) as u16, (y as i16 + dy) as u16);
                 let target_idx = coords_to_idx(target_x, target_y, self.width);
                 let cur_idx = coords_to_idx(x, y, self.width);
+
+                if self.costs[target_idx] <= 0 {
+                    continue;
+                }
 
                 let step_cost = if dx.abs() + dy.abs() == 1 {
                     self.cardinal

@@ -32,6 +32,15 @@ pub struct Fighter {
 }
 
 impl Fighter {
+    pub fn new(max_hp: u16, defense: i16, power: i16) -> Self {
+        Self {
+            max_hp,
+            hp: max_hp,
+            defense,
+            power,
+        }
+    }
+
     pub fn get_hp(&self) -> u16 {
         self.hp
     }

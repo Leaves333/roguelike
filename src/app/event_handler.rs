@@ -3,7 +3,9 @@ use crossterm::event::{self, Event, KeyCode};
 use hecs::Entity;
 use ratatui::DefaultTerminal;
 
-use crate::components::{Object, Position};
+use crate::components::{Fighter, MeleeAI, Object, Position};
+use crate::gamemap::coords_to_idx;
+use crate::pathfinding::Pathfinder;
 
 use super::App;
 
@@ -79,13 +81,54 @@ impl App {
     }
 
     // makes all monsters take a turn...
-    fn handle_monster_turns(&self) {
+    fn handle_monster_turns(&mut self) {
+        self.log.push(String::from("handling monster turns!"));
         self.handle_melee_ai();
     }
 
     // moves all entities with melee ai
-    fn handle_melee_ai(&self) {
-        todo!()
+    fn handle_melee_ai(&mut self) {
+        for (_entity, (object, fighter, _ai)) in self
+            .gamemap
+            .world
+            .query::<(&Object, &Fighter, &MeleeAI)>()
+            .iter()
+        {
+            let monster_pos = &object.position;
+            let player_pos = self.get_entity_position(self.player);
+            let out_of_range = monster_pos.x.abs_diff(player_pos.x) > 8
+                || monster_pos.y.abs_diff(player_pos.y) > 8;
+
+            if out_of_range {
+                continue;
+            }
+
+            self.log.push(format!(
+                "monster {} is in range of the player!",
+                object.name
+            ));
+
+            // find path to the player
+            let mut costs = Vec::new();
+            costs.resize((self.gamemap.height * self.gamemap.width) as usize, 0);
+            for y in 0..self.gamemap.height {
+                for x in 0..self.gamemap.width {
+                    if self.gamemap.get_ref(x, y).walkable {
+                        costs[coords_to_idx(x, y, self.gamemap.width)] += 1;
+                    }
+                }
+            }
+
+            let player_position = self.get_entity_position(self.player);
+            let pathfinder = Pathfinder::new(
+                costs,
+                (player_position.x, player_position.y),
+                self.gamemap.width,
+                self.gamemap.height,
+                2,
+                3,
+            );
+        }
     }
 
     // get a clone of the position of an entity in the world
