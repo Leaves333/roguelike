@@ -2,7 +2,8 @@ use ratatui::{
     Frame,
     buffer::Buffer,
     layout,
-    widgets::{Block, Borders, List, ListItem, Widget},
+    text::Line,
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 
 use super::App;
@@ -90,10 +91,12 @@ impl App {
     }
 
     fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
-        let items = self.log.iter().rev().map(|s| ListItem::new(s.as_str()));
-        let list = List::new(items)
-            .direction(ratatui::widgets::ListDirection::TopToBottom)
-            .block(Block::default().title("log").borders(Borders::ALL));
-        frame.render_widget(list, area);
+        let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
+        let display_idx = lines.len().saturating_sub(area.height as usize - 2);
+        let bottom_lines = lines.split_off(display_idx);
+
+        let paragraph =
+            Paragraph::new(bottom_lines).block(Block::default().title("log").borders(Borders::ALL));
+        frame.render_widget(paragraph, area);
     }
 }
