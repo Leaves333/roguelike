@@ -1,22 +1,104 @@
+use crate::gamemap::{coords_to_idx, idx_to_coords};
+use std::{collections::BinaryHeap, u32};
+
 struct Pathfinder {
-    costs: Vec<i32>,  // dist array for dijkstra, non-zero values are walkable cells
-    prev: Vec<u16>,   // stores ancestor of each vertex, used to recover the path
+    width: u16,       // width of the board
+    height: u16,      // height of the board
+    costs: Vec<u32>,  // multiplier for edges that move into this cell
+    dists: Vec<u32>,  // distance dp for dijkstra
+    prev: Vec<usize>, // stores ancestor of each vertex, used to recover the path
     root: (u16, u16), // root location from where distance is calculated
-    cardinal: u16,    // additional cost for cardinal movement
-    diagonal: u16,    // additional cost for diagonal movement
+    cardinal: u32,    // additional cost for cardinal movement
+    diagonal: u32,    // additional cost for diagonal movement
+}
+
+fn in_bounds(x: i16, y: i16, width: u16, height: u16) -> bool {
+    return 0 <= x && x < width as i16 && 0 <= y && y < height as i16;
 }
 
 impl Pathfinder {
-    pub fn new(costs: Vec<i32>, root: (u16, u16)) -> Self {
-        todo!()
+    pub fn new(
+        costs: Vec<u32>,
+        root: (u16, u16),
+        width: u16,
+        height: u16,
+        cardinal: u32,
+        diagonal: u32,
+    ) -> Self {
+        assert_eq!(
+            costs.len(),
+            (width * height) as usize,
+            "costs len does not match up with board dimensions!"
+        );
 
-        // dijkstra is calculated once here!!!
-        // and results are reused everywhere else...
+        let mut pathfinder = Pathfinder {
+            width,
+            height,
+            costs,
+            dists: Vec::new(),
+            prev: Vec::new(),
+            root,
+            cardinal,
+            diagonal,
+        };
+        pathfinder.dijkstra();
+        pathfinder
     }
 
-    // returns shortest path from dest to root
-    // reverse this iter in caller's code if needed
-    pub fn path_from(dest: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
-        std::iter::from_fn(|| todo!())
+    // returns shortest path from root to dest
+    pub fn path_to(&self, dest: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
+        let mut cur = coords_to_idx(dest.0, dest.1, self.width);
+        std::iter::from_fn(move || {
+            let to_return = idx_to_coords(cur, self.width);
+            cur = self.prev[cur];
+            if cur == usize::MAX {
+                None
+            } else {
+                Some(to_return)
+            }
+        })
+    }
+
+    fn dijkstra(&mut self) {
+        // dijkstra is calculated once here!!!
+        // and results are reused everywhere else...
+        self.dists.resize(self.costs.len(), u32::MAX);
+        self.prev.resize(self.costs.len(), usize::MAX);
+
+        let mut heap = BinaryHeap::new();
+
+        heap.push(std::cmp::Reverse((0, self.root)));
+        let cardinal_dirs = vec![(1, 0), (0, 1), (-1, 0), (0, -1)];
+        let diagonal_dirs = vec![(1, 1), (-1, 1), (1, -1), (-1, -1)];
+
+        while let Some(std::cmp::Reverse((cost, (x, y)))) = heap.pop() {
+            // this is not the current best distance
+            if cost > self.dists[coords_to_idx(x, y, self.width)] {
+                continue;
+            }
+
+            for (dx, dy) in cardinal_dirs.iter().chain(diagonal_dirs.iter()) {
+                if !in_bounds(x as i16 + dx, y as i16 + dy, self.width, self.height) {
+                    continue; // destination is not in bounds
+                }
+
+                let (target_x, target_y) = ((x as i16 + dx) as u16, (y as i16 + dy) as u16);
+                let target_idx = coords_to_idx(target_x, target_y, self.width);
+                let cur_idx = coords_to_idx(x, y, self.width);
+
+                let step_cost = if dx.abs() + dy.abs() == 1 {
+                    self.cardinal
+                } else {
+                    self.diagonal
+                };
+                let target_cost = cost + self.costs[target_idx] * step_cost;
+
+                if self.costs[target_idx] > target_cost {
+                    self.costs[target_idx] = target_cost;
+                    self.prev[target_idx] = cur_idx;
+                    heap.push(std::cmp::Reverse((target_cost, (target_x, target_y))));
+                }
+            }
+        }
     }
 }

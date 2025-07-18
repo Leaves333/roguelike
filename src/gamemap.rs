@@ -74,6 +74,16 @@ impl Tile {
     }
 }
 
+// generic functions to use
+pub fn coords_to_idx(x: u16, y: u16, width: u16) -> usize {
+    (x + y * width) as usize
+}
+
+pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
+    let idx = idx as u16;
+    (idx % width, idx / width)
+}
+
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
@@ -97,31 +107,28 @@ impl GameMap {
 
     // get a reference to a tile of the gamemap
     pub fn get_ref(&self, x: u16, y: u16) -> &Tile {
-        return &self.tiles[self.idx(x, y)];
+        return &self.tiles[coords_to_idx(x, y, self.width)];
     }
 
     // get a mutable reference to a tile of the gamemap
     pub fn get_mut(&mut self, x: u16, y: u16) -> &mut Tile {
-        let idx = self.idx(x, y);
-        return &mut self.tiles[idx];
+        return &mut self.tiles[coords_to_idx(x, y, self.width)];
     }
 
     pub fn is_visible(&self, x: u16, y: u16) -> bool {
-        self.visible[self.idx(x, y)]
+        self.visible[coords_to_idx(x, y, self.width)]
     }
 
     pub fn set_visible(&mut self, x: u16, y: u16, value: bool) {
-        let idx = self.idx(x, y);
-        self.visible[idx] = value;
+        self.visible[coords_to_idx(x, y, self.width)] = value;
     }
 
     pub fn is_explored(&self, x: u16, y: u16) -> bool {
-        self.explored[self.idx(x, y)]
+        self.explored[coords_to_idx(x, y, self.width)]
     }
 
     pub fn set_explored(&mut self, x: u16, y: u16, value: bool) {
-        let idx = self.idx(x, y);
-        self.explored[idx] = value;
+        self.explored[coords_to_idx(x, y, self.width)] = value;
     }
 
     // quickly check if an index is in bounds
@@ -193,10 +200,5 @@ impl GameMap {
         for (e, &v) in self.explored.iter_mut().zip(self.visible.iter()) {
             *e |= v;
         }
-    }
-
-    // helper private function for indexing the arrays
-    fn idx(&self, x: u16, y: u16) -> usize {
-        (x + y * self.width) as usize
     }
 }
