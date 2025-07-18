@@ -111,19 +111,24 @@ impl App {
                 monster_obj.name
             ));
 
-            // path to the player and chanck if it has line of sight
-            let has_los = los::bresenham(
-                (player_pos.x as i32, player_pos.y as i32),
-                (monster_pos.x as i32, monster_pos.y as i32),
-            )
-            .iter()
-            .map(|(x, y)| (*x as u16, *y as u16))
-            .fold(true, |b, (x, y)| {
-                b && self.gamemap.in_bounds(x as i16, y as i16)
-                    && self.gamemap.get_ref(x, y).transparent
-            });
+            // path to the player and check if it has line of sight
+            // let has_los = los::bresenham(
+            //     (player_pos.x as i32, player_pos.y as i32),
+            //     (monster_pos.x as i32, monster_pos.y as i32),
+            // )
+            // .iter()
+            // .map(|(x, y)| (*x as u16, *y as u16))
+            // .fold(true, |b, (x, y)| {
+            //     b && self.gamemap.in_bounds(x as i16, y as i16)
+            //         && self.gamemap.get_ref(x, y).transparent
+            // });
+            //
+            // if !has_los {
+            //     continue;
+            // }
 
-            if !has_los {
+            // NOTE: rework los algorithm later, for now assume it is symmetric
+            if !self.gamemap.is_visible(monster_pos.x, monster_pos.y) {
                 continue;
             }
 

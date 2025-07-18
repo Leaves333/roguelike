@@ -50,4 +50,7 @@ impl Fighter {
     }
 }
 
-pub struct MeleeAI {}
+pub struct MeleeAI {
+    // pub awake: bool,
+    // pub target_pos: Position,
+}
