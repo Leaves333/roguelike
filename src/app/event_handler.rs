@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::Entity;
@@ -91,13 +89,15 @@ impl App {
 
     // moves all entities with melee ai
     fn handle_melee_ai(&mut self) {
-        for (_entity, (object, fighter, ai)) in self
+        let mut queued_move_actions = Vec::new();
+
+        for (monster_ent, (monster_obj, fighter, ai)) in self
             .gamemap
             .world
             .query::<(&Object, &Fighter, &MeleeAI)>()
             .iter()
         {
-            let monster_pos = &object.position;
+            let monster_pos = &monster_obj.position;
             let player_pos = self.get_entity_position(self.player);
             let out_of_range = monster_pos.x.abs_diff(player_pos.x) > 8
                 || monster_pos.y.abs_diff(player_pos.y) > 8;
@@ -108,7 +108,7 @@ impl App {
 
             self.log.push(format!(
                 "monster {} is in range of the player!",
-                object.name
+                monster_obj.name
             ));
 
             // path to the player and chanck if it has line of sight
@@ -128,7 +128,7 @@ impl App {
             }
 
             self.log
-                .push(format!("monster {} can see the player!!", object.name));
+                .push(format!("monster {} can see the player!!", monster_obj.name));
 
             // find path to the player
             let mut costs = Vec::new();
@@ -150,12 +150,21 @@ impl App {
                 3,
             );
 
-            let mut path_string = String::from("path to the player is: ");
-            for (x, y) in pathfinder.path_to((player_pos.x, player_pos.y)) {
-                self.log.push(String::from("looping"));
-                path_string += &format!("({}, {}), ", x, y);
+            let path = pathfinder.path_to((player_pos.x, player_pos.y));
+            if path.len() == 0 {
+                self.log
+                    .push(format!("{} just sits and waits.", monster_obj.name));
+                continue;
+            } else {
+                self.log
+                    .push(format!("{} moves towards the player!", monster_obj.name));
+                queued_move_actions.push((monster_ent, *path.first().unwrap()));
+                // self.move_action(monster_ent, *path.first().unwrap());
             }
-            self.log.push(path_string);
+        }
+
+        for (entity, dest) in queued_move_actions {
+            self.move_action(entity, dest);
         }
     }
 
@@ -179,7 +188,6 @@ impl App {
             .get_blocking_entity_at_location(target_x, target_y)
             != None
         {
-            // NOTE: this should get checked in bump_action
             return; // destination is blocked by an object
         }
 

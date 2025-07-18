@@ -45,7 +45,8 @@ impl Pathfinder {
         pathfinder
     }
 
-    // returns shortest path from dest to root
+    // returns shortest path from root to dest
+    // last element is always dest, first element is tile adjacent to root
     pub fn path_to(&self, dest: (u16, u16)) -> Vec<(u16, u16)> {
         if self.dists[coords_to_idx(dest.0, dest.1, self.width)] == u32::MAX {
             return vec![(490, 490)];
@@ -61,7 +62,6 @@ impl Pathfinder {
             );
         }
 
-        path.push(self.root);
         path.reverse();
         path
     }
