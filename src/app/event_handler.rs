@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::Entity;
@@ -5,6 +7,7 @@ use ratatui::DefaultTerminal;
 
 use crate::components::{Fighter, MeleeAI, Object, Position};
 use crate::gamemap::coords_to_idx;
+use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::App;
@@ -88,7 +91,7 @@ impl App {
 
     // moves all entities with melee ai
     fn handle_melee_ai(&mut self) {
-        for (_entity, (object, fighter, _ai)) in self
+        for (_entity, (object, fighter, ai)) in self
             .gamemap
             .world
             .query::<(&Object, &Fighter, &MeleeAI)>()
@@ -108,6 +111,25 @@ impl App {
                 object.name
             ));
 
+            // path to the player and chanck if it has line of sight
+            let has_los = los::bresenham(
+                (player_pos.x as i32, player_pos.y as i32),
+                (monster_pos.x as i32, monster_pos.y as i32),
+            )
+            .iter()
+            .map(|(x, y)| (*x as u16, *y as u16))
+            .fold(true, |b, (x, y)| {
+                b && self.gamemap.in_bounds(x as i16, y as i16)
+                    && self.gamemap.get_ref(x, y).transparent
+            });
+
+            if !has_los {
+                continue;
+            }
+
+            self.log
+                .push(format!("monster {} can see the player!!", object.name));
+
             // find path to the player
             let mut costs = Vec::new();
             costs.resize((self.gamemap.height * self.gamemap.width) as usize, 0);
@@ -119,15 +141,21 @@ impl App {
                 }
             }
 
-            let player_position = self.get_entity_position(self.player);
             let pathfinder = Pathfinder::new(
                 costs,
-                (player_position.x, player_position.y),
+                (monster_pos.x, monster_pos.y),
                 self.gamemap.width,
                 self.gamemap.height,
                 2,
                 3,
             );
+
+            let mut path_string = String::from("path to the player is: ");
+            for (x, y) in pathfinder.path_to((player_pos.x, player_pos.y)) {
+                self.log.push(String::from("looping"));
+                path_string += &format!("({}, {}), ", x, y);
+            }
+            self.log.push(path_string);
         }
     }
 

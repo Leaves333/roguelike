@@ -45,18 +45,25 @@ impl Pathfinder {
         pathfinder
     }
 
-    // returns shortest path from root to dest
-    pub fn path_to(&self, dest: (u16, u16)) -> impl Iterator<Item = (u16, u16)> {
-        let mut cur = coords_to_idx(dest.0, dest.1, self.width);
-        std::iter::from_fn(move || {
-            let to_return = idx_to_coords(cur, self.width);
-            cur = self.prev[cur];
-            if cur == usize::MAX {
-                None
-            } else {
-                Some(to_return)
-            }
-        })
+    // returns shortest path from dest to root
+    pub fn path_to(&self, dest: (u16, u16)) -> Vec<(u16, u16)> {
+        if self.dists[coords_to_idx(dest.0, dest.1, self.width)] == u32::MAX {
+            return vec![(490, 490)];
+        }
+
+        let mut path = Vec::new();
+        let mut cur = dest;
+        while cur != self.root {
+            path.push(cur);
+            cur = idx_to_coords(
+                self.prev[coords_to_idx(cur.0, cur.1, self.width)],
+                self.width,
+            );
+        }
+
+        path.push(self.root);
+        path.reverse();
+        path
     }
 
     fn dijkstra(&mut self) {
@@ -95,12 +102,12 @@ impl Pathfinder {
                 } else {
                     self.diagonal
                 };
-                let target_cost = cost + self.costs[target_idx] * step_cost;
+                let target_dist = cost + self.costs[target_idx] * step_cost;
 
-                if self.costs[target_idx] > target_cost {
-                    self.costs[target_idx] = target_cost;
+                if self.dists[target_idx] > target_dist {
+                    self.dists[target_idx] = target_dist;
                     self.prev[target_idx] = cur_idx;
-                    heap.push(std::cmp::Reverse((target_cost, (target_x, target_y))));
+                    heap.push(std::cmp::Reverse((target_dist, (target_x, target_y))));
                 }
             }
         }

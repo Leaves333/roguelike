@@ -19,7 +19,7 @@ impl App {
         let max_rooms = 30;
         let room_min_size = 6;
         let room_max_size = 10;
-        let max_monsters_per_room = 2;
+        let max_monsters_per_room = 1;
 
         let dungeon_width = 80;
         let dungeon_height = 24;
