@@ -1,11 +1,11 @@
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::Entity;
+use rand::seq::IndexedRandom;
 use ratatui::DefaultTerminal;
 
 use crate::components::{Fighter, MeleeAI, Object, Position};
 use crate::gamemap::coords_to_idx;
-use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::App;
@@ -40,6 +40,7 @@ impl App {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
                 // player takes an action...
+                self.log.push(String::from("### new turn"));
                 match key.code {
                     KeyCode::Esc => {
                         break Ok(());
@@ -68,6 +69,9 @@ impl App {
                     KeyCode::Char('b') => {
                         self.bump_action(self.player, InputDirection::DownLeft);
                     }
+                    KeyCode::Char('5') | KeyCode::Char('.') => {
+                        // wait action
+                    }
                     _ => {}
                 }
 
@@ -77,6 +81,7 @@ impl App {
                 // update fov
                 let view_radius = 8;
                 self.gamemap.update_fov(self.player, view_radius);
+                self.log.push(String::from(""));
             }
         }
     }
@@ -90,6 +95,7 @@ impl App {
     // moves all entities with melee ai
     fn handle_melee_ai(&mut self) {
         let mut queued_move_actions = Vec::new();
+        let mut queued_melee_actions = Vec::new();
 
         for (monster_ent, (monster_obj, fighter, ai)) in self
             .gamemap
@@ -106,26 +112,10 @@ impl App {
                 continue;
             }
 
-            self.log.push(format!(
-                "monster {} is in range of the player!",
-                monster_obj.name
-            ));
-
-            // path to the player and check if it has line of sight
-            // let has_los = los::bresenham(
-            //     (player_pos.x as i32, player_pos.y as i32),
-            //     (monster_pos.x as i32, monster_pos.y as i32),
-            // )
-            // .iter()
-            // .map(|(x, y)| (*x as u16, *y as u16))
-            // .fold(true, |b, (x, y)| {
-            //     b && self.gamemap.in_bounds(x as i16, y as i16)
-            //         && self.gamemap.get_ref(x, y).transparent
-            // });
-            //
-            // if !has_los {
-            //     continue;
-            // }
+            // self.log.push(format!(
+            //     "monster {} is in range of the player!",
+            //     monster_obj.name
+            // ));
 
             // NOTE: rework los algorithm later, for now assume it is symmetric
             if !self.gamemap.is_visible(monster_pos.x, monster_pos.y) {
@@ -160,16 +150,20 @@ impl App {
                 self.log
                     .push(format!("{} just sits and waits.", monster_obj.name));
                 continue;
+            } else if path.len() == 1 {
+                queued_melee_actions.push((monster_ent, *path.first().unwrap()));
             } else {
                 self.log
                     .push(format!("{} moves towards the player!", monster_obj.name));
                 queued_move_actions.push((monster_ent, *path.first().unwrap()));
-                // self.move_action(monster_ent, *path.first().unwrap());
             }
         }
 
         for (entity, dest) in queued_move_actions {
             self.move_action(entity, dest);
+        }
+        for (entity, dest) in queued_melee_actions {
+            self.melee_action(entity, dest);
         }
     }
 
@@ -215,12 +209,22 @@ impl App {
 
         // TODO: implement actual melee attack code
         let source_obj = self.gamemap.world.get::<&Object>(entity).unwrap();
+        let source_fighter = self.gamemap.world.get::<&Fighter>(entity).unwrap();
         let target_obj = self.gamemap.world.get::<&Object>(target).unwrap();
+        let mut target_fighter = self.gamemap.world.get::<&mut Fighter>(target).unwrap();
 
-        self.log.push(format!(
-            "{} bumped into the {}",
-            source_obj.name, target_obj.name
-        ));
+        let damage = (source_fighter.power - target_fighter.defense).max(0) as u16;
+        let attack_desc = format!("{} attacks {}", source_obj.name, target_obj.name);
+
+        if damage > 0 {
+            let target_hp = target_fighter.get_hp().saturating_sub(damage);
+            target_fighter.set_hp(target_hp);
+            self.log
+                .push(format!("{} for {} damage.", attack_desc, damage));
+        } else {
+            self.log
+                .push(format!("{} but does no damage.", attack_desc));
+        }
     }
 
     fn bump_action(&mut self, entity: Entity, direction: InputDirection) {
