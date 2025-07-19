@@ -1,7 +1,6 @@
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use hecs::Entity;
-use rand::seq::IndexedRandom;
 use ratatui::DefaultTerminal;
 
 use crate::components::{Fighter, MeleeAI, Object, Position};

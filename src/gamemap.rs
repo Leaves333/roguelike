@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use hecs::{Entity, World};
 use ratatui::style::Color;
 
 use crate::{
@@ -87,18 +86,19 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
-    pub world: World,
+    // pub world: World,
+    pub entities: Vec<Object>,
     tiles: Vec<Tile>,
     visible: Vec<bool>,
     explored: Vec<bool>,
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16, world: World) -> Self {
+    pub fn new(width: u16, height: u16, entities) -> Self {
         Self {
             width,
             height,
-            world,
+            entities: Vec::new()
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],

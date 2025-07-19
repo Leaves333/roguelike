@@ -6,6 +6,12 @@ pub struct Position {
     pub y: u16,
 }
 
+impl Position {
+    pub fn default() -> Self {
+        Position { x: 0, y: 0 }
+    }
+}
+
 #[derive(Clone)]
 pub struct Renderable {
     pub glyph: char,
@@ -19,9 +25,10 @@ pub struct Object {
     pub position: Position,
     pub renderable: Renderable,
     pub blocks_movement: bool,
+    pub alive: bool,
+    pub fighter: Option<Fighter>,
+    pub ai: Option<AIType>,
 }
-
-pub struct Player {}
 
 #[derive(Clone)]
 pub struct Fighter {
@@ -50,7 +57,7 @@ impl Fighter {
     }
 }
 
-pub struct MeleeAI {
-    // pub awake: bool,
-    // pub target_pos: Position,
+#[derive(Clone)]
+pub enum AIType {
+    Melee,
 }
