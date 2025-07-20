@@ -46,7 +46,7 @@ impl App {
         self.render_log(frame, layout[1]);
     }
 
-    // render tiles in gamemap
+    /// render tiles in gamemap
     fn render_map(&self, frame: &mut Frame, area: layout::Rect) {
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
@@ -73,7 +73,10 @@ impl App {
         let block = Block::default().title("world").borders(Borders::ALL);
         frame.render_widget(block, area);
 
-        for obj in &self.gamemap.objects {
+        let mut to_draw = self.gamemap.objects.clone();
+        to_draw.sort_by(|a, b| a.blocks_movement.cmp(&b.blocks_movement));
+
+        for obj in to_draw {
             let position = &obj.pos;
             let renderable = &obj.renderable;
 
