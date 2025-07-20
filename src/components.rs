@@ -30,40 +30,23 @@ pub struct Object {
     pub ai: Option<AIType>,
 }
 
-impl Object {
-    pub fn take_damage(&mut self, damage: u16) {
-        // apply damage if possible
-        if let Some(fighter) = self.fighter.as_mut() {
-            if damage > 0 {
-                fighter.hp = fighter.hp.saturating_sub(damage);
-            }
-
-            if fighter.hp <= 0 {
-                self.alive = false;
-                // TODO: death code
-                // fighter.on_death.callback(self);
-            }
-
-            fighter.hp = fighter.hp.max(fighter.max_hp);
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct Fighter {
     pub max_hp: u16,
     pub hp: u16,
     pub defense: i16,
     pub power: i16,
+    pub death_callback: DeathCallback,
 }
 
 impl Fighter {
-    pub fn new(max_hp: u16, defense: i16, power: i16) -> Self {
+    pub fn new(max_hp: u16, defense: i16, power: i16, death_callback: DeathCallback) -> Self {
         Self {
             max_hp,
             hp: max_hp,
             defense,
             power,
+            death_callback,
         }
     }
 }
@@ -71,4 +54,10 @@ impl Fighter {
 #[derive(Clone)]
 pub enum AIType {
     Melee,
+}
+
+#[derive(Clone)]
+pub enum DeathCallback {
+    Player,
+    Monster,
 }

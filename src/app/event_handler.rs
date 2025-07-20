@@ -1,8 +1,10 @@
+use color_eyre::owo_colors::OwoColorize;
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::DefaultTerminal;
+use ratatui::style::Color;
 
-use crate::components::AIType;
+use crate::components::{AIType, DeathCallback, Object};
 use crate::gamemap::coords_to_idx;
 use crate::pathfinding::Pathfinder;
 
@@ -204,7 +206,7 @@ impl App {
         let attack_desc = format!("{} attacks {}", attacker.name, target.name);
 
         if damage > 0 {
-            target.take_damage(damage);
+            self.take_damage(target_id, damage);
             self.log
                 .push(format!("{} for {} damage.", attack_desc, damage));
         } else {
@@ -232,5 +234,54 @@ impl App {
                 self.move_action(id, (target_x, target_y));
             }
         };
+    }
+
+    fn take_damage(&mut self, id: usize, damage: u16) {
+        // apply damage if possible
+        let obj = &mut self.gamemap.objects[id];
+        let mut death_callback = None;
+        if let Some(fighter) = obj.fighter.as_mut() {
+            if damage > 0 {
+                fighter.hp = fighter.hp.saturating_sub(damage);
+            }
+
+            if fighter.hp <= 0 {
+                obj.alive = false;
+                death_callback = Some(fighter.death_callback.clone());
+            }
+
+            fighter.hp = fighter.hp.min(fighter.max_hp);
+        }
+
+        // TODO: death code
+        if let Some(callback) = death_callback {
+            match callback {
+                DeathCallback::Player => self.player_death(),
+                DeathCallback::Monster => self.monster_death(id),
+            }
+        }
+    }
+
+    fn player_death(&mut self) {
+        let player = &mut self.gamemap.objects[PLAYER];
+        self.log.push(String::from("you died!"));
+
+        let renderable = &mut player.renderable;
+        renderable.glyph = '%';
+        renderable.fg = Color::Red;
+    }
+
+    fn monster_death(&mut self, id: usize) {
+        let monster = &mut self.gamemap.objects[id];
+        self.log.push(format!("{} dies!", monster.name));
+
+        let renderable = &mut monster.renderable;
+        renderable.glyph = '%';
+        renderable.fg = Color::Red;
+
+        monster.blocks_movement = false;
+        monster.alive = false;
+        monster.fighter = None;
+        monster.name = format!("remains of {}", monster.name);
     }
 }
