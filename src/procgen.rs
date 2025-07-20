@@ -1,7 +1,8 @@
-use hecs::{Entity, World};
 use rand::{Rng, random_ratio};
 
+use crate::app::PLAYER;
 use crate::components::Object;
+use crate::entities::spawn;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
 
@@ -67,10 +68,9 @@ pub fn generate_dungeon(
     max_monsters_per_room: u16,
     width: u16,
     height: u16,
-    world: World,
-    player: Entity,
+    objects: Vec<Object>,
 ) -> GameMap {
-    let mut dungeon = GameMap::new(width, height, world);
+    let mut dungeon = GameMap::new(width, height, objects);
     let mut rooms: Vec<RectangularRoom> = Vec::new();
 
     let mut rng = rand::rng();
@@ -98,7 +98,7 @@ pub fn generate_dungeon(
 
         if rooms.is_empty() {
             // player starts in the first room
-            let position = &mut dungeon.world.get::<&mut Object>(player).unwrap().position;
+            let position = &mut dungeon.objects[PLAYER].pos;
             (position.x, position.y) = new_room.center();
         } else {
             // dig tunnel between current room and previous
@@ -124,20 +124,17 @@ fn place_entities(room: &RectangularRoom, dungeon: &mut GameMap, maximum_monster
         let y = rng.random_range((room.y1 + 1)..room.y2);
 
         // check if it intersects with any entities
-        let bad_placement = dungeon
-            .world
-            .query::<&Object>()
-            .iter() // query for all the entities...
-            .map(|(_entity, object)| &object.position) // get only the positions...
-            .fold(false, |valid, pos| valid || (pos.x == x && pos.y == y)); // check if equal
-        if bad_placement {
-            continue;
+        match dungeon.get_blocking_object_id(x, y) {
+            Some(_) => {
+                continue;
+            }
+            None => {}
         }
 
         if random_ratio(4, 5) {
-            dungeon.world.spawn(entities::orc(x, y));
+            dungeon.objects.push(spawn(x, y, entities::orc()));
         } else {
-            dungeon.world.spawn(entities::troll(x, y));
+            dungeon.objects.push(spawn(x, y, entities::troll()));
         }
     }
 }

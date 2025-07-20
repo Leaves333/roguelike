@@ -8,7 +8,7 @@ use ratatui::{
 
 use super::App;
 use crate::{
-    components::{Object, Position, Renderable},
+    components::{Position, Renderable},
     gamemap,
 };
 
@@ -68,13 +68,13 @@ impl App {
         }
     }
 
-    // render entities in the world
+    /// render all objects in the gamemap to screen
     fn render_entities(&self, frame: &mut Frame, area: layout::Rect) {
         let block = Block::default().title("world").borders(Borders::ALL);
         frame.render_widget(block, area);
 
-        for (_entity, obj) in self.gamemap.world.query::<&Object>().iter() {
-            let position = &obj.position;
+        for obj in &self.gamemap.objects {
+            let position = &obj.pos;
             let renderable = &obj.renderable;
 
             // render only visible entities
@@ -90,6 +90,7 @@ impl App {
         }
     }
 
+    /// renders the text in the log
     fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
         let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
         let display_idx = lines.len().saturating_sub(area.height as usize - 2);

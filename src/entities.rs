@@ -4,15 +4,15 @@ use crate::components::{AIType, Fighter, Object, Position, Renderable};
 use ratatui::style::Color;
 
 pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
-    object.position.x = x;
-    object.position.y = y;
+    object.pos.x = x;
+    object.pos.y = y;
     object
 }
 
 pub fn player() -> Object {
     Object {
         name: String::from("Player"),
-        position: Position::default(),
+        pos: Position::default(),
         renderable: Renderable {
             glyph: '@',
             fg: Color::default(),
@@ -33,7 +33,7 @@ pub fn player() -> Object {
 pub fn orc() -> Object {
     Object {
         name: String::from("Orc"),
-        position: Position::default(),
+        pos: Position::default(),
         renderable: Renderable {
             glyph: 'o',
             fg: Color::Red,
@@ -54,9 +54,9 @@ pub fn orc() -> Object {
 pub fn troll() -> Object {
     Object {
         name: String::from("Troll"),
-        position: Position::default(),
+        pos: Position::default(),
         renderable: Renderable {
-            glyph: '@',
+            glyph: 'T',
             fg: Color::Green,
             bg: Color::Reset,
         },

@@ -1,19 +1,25 @@
-use crate::{entities, gamemap::GameMap, procgen::generate_dungeon};
-use hecs::{Entity, World};
+use crate::{
+    entities::{self, spawn},
+    gamemap::GameMap,
+    procgen::generate_dungeon,
+};
 
 mod event_handler;
 mod render;
 
+pub const PLAYER: usize = 0;
+
 pub struct App {
     gamemap: GameMap,
-    player: Entity,
+    // player: Entity,
     log: Vec<String>,
 }
 
 impl App {
     pub fn new() -> Self {
-        let mut world = World::new();
-        let player = world.spawn(entities::player(0, 0));
+        let player = spawn(0, 0, entities::player());
+        let objects = vec![player];
+
         let log = Vec::new();
 
         let max_rooms = 30;
@@ -31,15 +37,10 @@ impl App {
             max_monsters_per_room,
             dungeon_width,
             dungeon_height,
-            world,
-            player,
+            objects,
         );
 
-        gamemap.update_fov(player, 8);
-        Self {
-            gamemap,
-            player,
-            log,
-        }
+        gamemap.update_fov(8);
+        Self { gamemap, log }
     }
 }

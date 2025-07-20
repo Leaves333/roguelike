@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use ratatui::style::Color;
 
 use crate::{
+    app::PLAYER,
     components::{Object, Renderable},
     los,
 };
@@ -30,15 +31,16 @@ pub fn shroud_renderable() -> Renderable {
 }
 
 impl Tile {
-    pub fn new(walkable: bool, transparent: bool, light: Renderable, dark: Renderable) -> Self {
-        Self {
-            walkable,
-            transparent,
-            light,
-            dark,
-        }
-    }
+    // pub fn new(walkable: bool, transparent: bool, light: Renderable, dark: Renderable) -> Self {
+    //     Self {
+    //         walkable,
+    //         transparent,
+    //         light,
+    //         dark,
+    //     }
+    // }
 
+    /// constructs a tile from a TileType enum
     pub fn from_type(tile_type: TileType) -> Tile {
         match tile_type {
             TileType::Wall => Self {
@@ -86,19 +88,18 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
-    // pub world: World,
-    pub entities: Vec<Object>,
+    pub objects: Vec<Object>,
     tiles: Vec<Tile>,
     visible: Vec<bool>,
     explored: Vec<bool>,
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16, entities) -> Self {
+    pub fn new(width: u16, height: u16, objects: Vec<Object>) -> Self {
         Self {
             width,
             height,
-            entities: Vec::new()
+            objects: objects,
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
@@ -136,23 +137,22 @@ impl GameMap {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
     }
 
-    pub fn get_blocking_entity_at_location(&self, x: u16, y: u16) -> Option<Entity> {
-        for (entity, obj) in self.world.query::<&Object>().iter() {
-            if obj.blocks_movement && obj.position.x == x && obj.position.y == y {
-                return Some(entity);
+    pub fn get_blocking_object_id(&self, x: u16, y: u16) -> Option<usize> {
+        for i in 0..self.objects.len() {
+            let obj = &self.objects[i];
+            if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
+                return Some(i);
             }
         }
         return None;
     }
 
     // recompute visible area based on the player's fov
-    pub fn update_fov(&mut self, player: Entity, radius: u16) {
+    pub fn update_fov(&mut self, radius: u16) {
         // TODO: use a different symmetric algo to calculate line of sight
 
-        let player_object = self.world.get::<&Object>(player).unwrap();
-        let position = &player_object.position;
+        let position = &self.objects[PLAYER].pos;
         let (player_x, player_y) = (position.x, position.y);
-        drop(player_object);
 
         self.visible.fill(false);
 
