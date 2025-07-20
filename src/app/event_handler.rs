@@ -97,14 +97,12 @@ impl App {
                 // update fov
                 let view_radius = 8;
                 self.gamemap.update_fov(view_radius);
-                self.log.push(String::from(""));
             }
         }
     }
 
     /// makes all the monsters take a turn
     fn handle_monster_turns(&mut self) {
-        self.log.push(String::from("handling monster turns!"));
         for i in 0..self.gamemap.objects.len() {
             let obj = &self.gamemap.objects[i];
             if !obj.alive {
@@ -136,9 +134,6 @@ impl App {
         if !self.gamemap.is_visible(monster.pos.x, monster.pos.y) {
             return;
         }
-
-        self.log
-            .push(format!("monster {} can see the player!!", monster.name));
 
         // find path to the player
         let mut costs = Vec::new();
