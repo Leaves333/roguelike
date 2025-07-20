@@ -11,7 +11,6 @@ pub const PLAYER: usize = 0;
 
 pub struct App {
     gamemap: GameMap,
-    // player: Entity,
     log: Vec<String>,
 }
 
@@ -27,8 +26,8 @@ impl App {
         let room_max_size = 10;
         let max_monsters_per_room = 1;
 
-        let dungeon_width = 80;
-        let dungeon_height = 24;
+        let dungeon_width = 60;
+        let dungeon_height = 16;
 
         let mut gamemap = generate_dungeon(
             max_rooms,

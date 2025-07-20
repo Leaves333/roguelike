@@ -1,12 +1,17 @@
+use std::fmt::format;
+
+use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     Frame,
     buffer::Buffer,
     layout,
+    style::{Style, Stylize},
+    symbols,
     text::Line,
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Block, Borders, LineGauge, Paragraph, Widget},
 };
 
-use super::App;
+use super::{App, PLAYER};
 use crate::{
     components::{Position, Renderable},
     gamemap,
@@ -34,16 +39,27 @@ impl Widget for CharWidget {
 
 impl App {
     pub fn render(&self, frame: &mut Frame) {
-        let layout = layout::Layout::default()
+        let horizontal_split = layout::Layout::default()
+            .direction(layout::Direction::Horizontal)
+            .constraints(vec![
+                layout::Constraint::Min(15),
+                layout::Constraint::Percentage(70),
+            ])
+            .split(frame.area());
+
+        let ui_layout = horizontal_split[0];
+        let world_layout = layout::Layout::default()
             .direction(layout::Direction::Vertical)
             .constraints(vec![
                 layout::Constraint::Percentage(70),
                 layout::Constraint::Min(5),
             ])
-            .split(frame.area());
-        self.render_map(frame, layout[0]);
-        self.render_entities(frame, layout[0]);
-        self.render_log(frame, layout[1]);
+            .split(horizontal_split[1]);
+
+        self.render_map(frame, world_layout[0]);
+        self.render_entities(frame, world_layout[0]);
+        self.render_log(frame, world_layout[1]);
+        self.render_status(frame, ui_layout);
     }
 
     /// render tiles in gamemap
@@ -102,5 +118,21 @@ impl App {
         let paragraph =
             Paragraph::new(bottom_lines).block(Block::default().title("log").borders(Borders::ALL));
         frame.render_widget(paragraph, area);
+    }
+
+    /// renders inventory ui on the left side of the screen
+    fn render_status(&self, frame: &mut Frame, area: layout::Rect) {
+        let player = &self.gamemap.objects[PLAYER];
+        let fighter = &player.fighter.as_ref().unwrap();
+        let ratio = fighter.hp as f64 / fighter.max_hp as f64;
+
+        let gauge = LineGauge::default()
+            .block(Block::bordered().title("status"))
+            .filled_style(Style::new().on_blue())
+            .line_set(symbols::line::NORMAL)
+            .label(format!("HP: {}/{}", fighter.hp, fighter.max_hp))
+            .ratio(ratio);
+
+        frame.render_widget(gauge, area);
     }
 }

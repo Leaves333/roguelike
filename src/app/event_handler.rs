@@ -1,10 +1,9 @@
-use color_eyre::owo_colors::OwoColorize;
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, DeathCallback, Object};
+use crate::components::{AIType, DeathCallback};
 use crate::gamemap::coords_to_idx;
 use crate::pathfinding::Pathfinder;
 
