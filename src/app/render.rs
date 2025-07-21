@@ -200,18 +200,31 @@ impl App {
         frame.render_widget(block, area);
 
         let inner_area = area.inner(layout::Margin::new(1, 1));
+        let layout = layout::Layout::default()
+            .direction(layout::Direction::Horizontal)
+            .constraints(vec![
+                layout::Constraint::Length(12),
+                layout::Constraint::Percentage(100),
+            ])
+            .split(inner_area);
+
+        let label_area = layout[0];
+        let gauge_area = layout[1];
 
         let player = &self.gamemap.objects[PLAYER];
         let fighter = &player.fighter.as_ref().unwrap();
         let ratio = fighter.hp as f64 / fighter.max_hp as f64;
 
         let label_text = format!("HP: {}/{}", fighter.hp, fighter.max_hp);
-        let gauge = AsciiGauge::default()
+        let health_label = Paragraph::new(label_text);
+
+        let health_gauge = AsciiGauge::default()
             .ratio(ratio)
             .filled_style(Style::default().fg(Color::Green))
             .unfilled_style(Style::default().fg(Color::Red));
 
-        frame.render_widget(gauge, inner_area);
+        frame.render_widget(health_label, label_area);
+        frame.render_widget(health_gauge, gauge_area);
     }
 
     fn render_inventory(&self, frame: &mut Frame, area: layout::Rect) {
