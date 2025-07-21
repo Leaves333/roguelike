@@ -1,14 +1,10 @@
-use std::fmt::format;
-
-use color_eyre::owo_colors::OwoColorize;
 use ratatui::{
     Frame,
     buffer::Buffer,
     layout,
-    style::{Style, Stylize},
-    symbols,
+    style::{Color, Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, LineGauge, Paragraph, Widget},
+    widgets::{Block, Borders, Gauge, LineGauge, Padding, Paragraph, Widget},
 };
 
 use super::{App, PLAYER};
@@ -26,13 +22,74 @@ pub struct CharWidget {
 impl Widget for CharWidget {
     fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
         // add and subtract 1 to account for borders
-        let tx = area.x + self.position.x + 1 as u16;
-        let ty = area.y + self.position.y + 1 as u16;
-        if tx < area.right() - 1 && ty < area.bottom() - 1 {
+        let tx = area.x + self.position.x as u16;
+        let ty = area.y + self.position.y as u16;
+        if tx < area.right() && ty < area.bottom() {
             buf[(tx, ty)]
                 .set_symbol(&self.renderable.glyph.to_string())
                 .set_fg(self.renderable.fg)
                 .set_bg(self.renderable.bg);
+        }
+    }
+}
+
+pub struct AsciiGauge {
+    ratio: f64,
+    filled_glyph: char,
+    unfilled_glyph: char,
+    filled_style: Style,
+    unfilled_style: Style,
+}
+
+impl AsciiGauge {
+    pub fn default() -> Self {
+        Self {
+            ratio: 0.5,
+            filled_glyph: '=',
+            unfilled_glyph: '-',
+            filled_style: Style::default(),
+            unfilled_style: Style::default(),
+        }
+    }
+
+    pub fn filled_glyph(mut self, glyph: char) -> Self {
+        self.filled_glyph = glyph;
+        self
+    }
+
+    pub fn unfilled_glyph(mut self, glyph: char) -> Self {
+        self.unfilled_glyph = glyph;
+        self
+    }
+
+    pub fn filled_style(mut self, style: Style) -> Self {
+        self.filled_style = style;
+        self
+    }
+
+    pub fn unfilled_style(mut self, style: Style) -> Self {
+        self.unfilled_style = style;
+        self
+    }
+
+    pub fn ratio(mut self, ratio: f64) -> Self {
+        self.ratio = ratio;
+        self
+    }
+}
+
+impl Widget for AsciiGauge {
+    fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
+        let filled_chars = (area.width as f64 * self.ratio).ceil() as u16;
+        for i in 0..filled_chars {
+            let cell = &mut buf[(area.x + i, area.y)];
+            cell.set_char(self.filled_glyph)
+                .set_style(self.filled_style);
+        }
+        for i in filled_chars..area.width {
+            let cell = &mut buf[(area.x + i, area.y)];
+            cell.set_char(self.unfilled_glyph)
+                .set_style(self.unfilled_style);
         }
     }
 }
@@ -47,7 +104,14 @@ impl App {
             ])
             .split(frame.area());
 
-        let ui_layout = horizontal_split[0];
+        let ui_layout = layout::Layout::default()
+            .direction(layout::Direction::Vertical)
+            .constraints(vec![
+                layout::Constraint::Percentage(30),
+                layout::Constraint::Percentage(70),
+            ])
+            .split(horizontal_split[0]);
+
         let world_layout = layout::Layout::default()
             .direction(layout::Direction::Vertical)
             .constraints(vec![
@@ -59,11 +123,17 @@ impl App {
         self.render_map(frame, world_layout[0]);
         self.render_entities(frame, world_layout[0]);
         self.render_log(frame, world_layout[1]);
-        self.render_status(frame, ui_layout);
+
+        self.render_status(frame, ui_layout[0]);
+        self.render_inventory(frame, ui_layout[1]);
     }
 
     /// render tiles in gamemap
     fn render_map(&self, frame: &mut Frame, area: layout::Rect) {
+        let inner_area = area.inner(layout::Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
                 let tile = self.gamemap.get_ref(x, y);
@@ -79,7 +149,7 @@ impl App {
                         }
                     },
                 };
-                frame.render_widget(ch, area);
+                frame.render_widget(ch, inner_area);
             }
         }
     }
@@ -88,6 +158,10 @@ impl App {
     fn render_entities(&self, frame: &mut Frame, area: layout::Rect) {
         let block = Block::default().title("world").borders(Borders::ALL);
         frame.render_widget(block, area);
+        let inner_area = area.inner(layout::Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
 
         let mut to_draw = self.gamemap.objects.clone();
         to_draw.sort_by(|a, b| a.blocks_movement.cmp(&b.blocks_movement));
@@ -105,7 +179,7 @@ impl App {
                 position: position.clone(),
                 renderable: renderable.clone(),
             };
-            frame.render_widget(ch, area);
+            frame.render_widget(ch, inner_area);
         }
     }
 
@@ -122,17 +196,26 @@ impl App {
 
     /// renders inventory ui on the left side of the screen
     fn render_status(&self, frame: &mut Frame, area: layout::Rect) {
+        let block = Block::default().title("character").borders(Borders::ALL);
+        frame.render_widget(block, area);
+
+        let inner_area = area.inner(layout::Margin::new(1, 1));
+
         let player = &self.gamemap.objects[PLAYER];
         let fighter = &player.fighter.as_ref().unwrap();
         let ratio = fighter.hp as f64 / fighter.max_hp as f64;
 
-        let gauge = LineGauge::default()
-            .block(Block::bordered().title("status"))
-            .filled_style(Style::new().on_blue())
-            .line_set(symbols::line::NORMAL)
-            .label(format!("HP: {}/{}", fighter.hp, fighter.max_hp))
-            .ratio(ratio);
+        let label_text = format!("HP: {}/{}", fighter.hp, fighter.max_hp);
+        let gauge = AsciiGauge::default()
+            .ratio(ratio)
+            .filled_style(Style::default().fg(Color::Green))
+            .unfilled_style(Style::default().fg(Color::Red));
 
-        frame.render_widget(gauge, area);
+        frame.render_widget(gauge, inner_area);
+    }
+
+    fn render_inventory(&self, frame: &mut Frame, area: layout::Rect) {
+        let block = Block::default().title("inventory").borders(Borders::ALL);
+        frame.render_widget(block, area);
     }
 }
