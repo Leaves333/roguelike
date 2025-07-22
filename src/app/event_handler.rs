@@ -1,5 +1,5 @@
 use color_eyre::{Result, eyre::Ok};
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
@@ -35,6 +35,13 @@ fn direction_to_deltas(direction: InputDirection) -> (i16, i16) {
     }
 }
 
+/// used to determine if the player took a turn or not
+enum PlayerAction {
+    TookTurn,
+    DidntTakeTurn,
+    Exit,
+}
+
 /// mutably borrow two *separate* elements from the given slice.
 /// panics when the indexes are equal or out of bounds.
 /// code from [https://tomassedovic.github.io/roguelike-tutorial/part-6-going-berserk.html]
@@ -54,49 +61,69 @@ impl App {
         loop {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
-                // player takes an action...
-                self.log.push(String::from("### new turn"));
-                match key.code {
-                    KeyCode::Esc => {
+                let action = self.handle_keys(key);
+                match action {
+                    PlayerAction::TookTurn => {
+                        // monsters act...
+                        self.handle_monster_turns();
+
+                        // update fov
+                        let view_radius = 8;
+                        self.gamemap.update_fov(view_radius);
+                    }
+                    PlayerAction::DidntTakeTurn => {
+                        // nothing happens
+                    }
+                    PlayerAction::Exit => {
                         break Ok(());
                     }
-                    KeyCode::Right | KeyCode::Char('l') => {
-                        self.bump_action(PLAYER, InputDirection::Right);
-                    }
-                    KeyCode::Left | KeyCode::Char('h') => {
-                        self.bump_action(PLAYER, InputDirection::Left);
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        self.bump_action(PLAYER, InputDirection::Down);
-                    }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        self.bump_action(PLAYER, InputDirection::Up);
-                    }
-                    KeyCode::Char('u') => {
-                        self.bump_action(PLAYER, InputDirection::UpRight);
-                    }
-                    KeyCode::Char('y') => {
-                        self.bump_action(PLAYER, InputDirection::UpLeft);
-                    }
-                    KeyCode::Char('n') => {
-                        self.bump_action(PLAYER, InputDirection::DownRight);
-                    }
-                    KeyCode::Char('b') => {
-                        self.bump_action(PLAYER, InputDirection::DownLeft);
-                    }
-                    KeyCode::Char('5') | KeyCode::Char('.') => {
-                        // wait action
-                    }
-                    _ => {}
                 }
-
-                // monsters act...
-                self.handle_monster_turns();
-
-                // update fov
-                let view_radius = 8;
-                self.gamemap.update_fov(view_radius);
             }
+        }
+    }
+
+    fn handle_keys(&mut self, key: KeyEvent) -> PlayerAction {
+        // player takes an action...
+        self.log.push(String::from("### new turn"));
+        match key.code {
+            KeyCode::Esc => PlayerAction::Exit,
+            KeyCode::Right | KeyCode::Char('l') => {
+                self.bump_action(PLAYER, InputDirection::Right);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                self.bump_action(PLAYER, InputDirection::Left);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.bump_action(PLAYER, InputDirection::Down);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.bump_action(PLAYER, InputDirection::Up);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Char('u') => {
+                self.bump_action(PLAYER, InputDirection::UpRight);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Char('y') => {
+                self.bump_action(PLAYER, InputDirection::UpLeft);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Char('n') => {
+                self.bump_action(PLAYER, InputDirection::DownRight);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Char('b') => {
+                self.bump_action(PLAYER, InputDirection::DownLeft);
+                PlayerAction::TookTurn
+            }
+            KeyCode::Char('5') | KeyCode::Char('.') => {
+                // wait action, nothing is done
+                PlayerAction::TookTurn
+            }
+            _ => PlayerAction::DidntTakeTurn,
         }
     }
 
