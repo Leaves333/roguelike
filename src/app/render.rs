@@ -2,9 +2,9 @@ use ratatui::{
     Frame,
     buffer::Buffer,
     layout,
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Gauge, LineGauge, Padding, Paragraph, Widget},
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 
 use super::{App, PLAYER};
@@ -12,6 +12,11 @@ use crate::{
     components::{Position, Renderable},
     gamemap,
 };
+
+pub enum GameScreen {
+    Main,
+    Log { offset: usize },
+}
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -95,7 +100,7 @@ impl Widget for AsciiGauge {
 }
 
 impl App {
-    pub fn render(&self, frame: &mut Frame) {
+    pub fn render(&mut self, frame: &mut Frame) {
         let horizontal_split = layout::Layout::default()
             .direction(layout::Direction::Horizontal)
             .constraints(vec![
@@ -120,12 +125,33 @@ impl App {
             ])
             .split(horizontal_split[1]);
 
-        self.render_map(frame, world_layout[0]);
-        self.render_entities(frame, world_layout[0]);
-        self.render_log(frame, world_layout[1]);
+        // correct the offset before it gets passed to render fullscreen log
+        match &mut self.game_screen {
+            GameScreen::Log { offset } => {
+                let display_idx = self
+                    .log
+                    .len()
+                    .saturating_sub(horizontal_split[1].height as usize - 2);
+                *offset = (*offset).min(display_idx);
+            }
+            _ => {}
+        }
 
-        self.render_status(frame, ui_layout[0]);
-        self.render_inventory(frame, ui_layout[1]);
+        match self.game_screen {
+            GameScreen::Main => {
+                self.render_map(frame, world_layout[0]);
+                self.render_entities(frame, world_layout[0]);
+                self.render_log(frame, world_layout[1]);
+
+                self.render_status(frame, ui_layout[0]);
+                self.render_inventory(frame, ui_layout[1]);
+            }
+            GameScreen::Log { offset } => {
+                self.render_fullscreen_log(frame, horizontal_split[1], offset);
+                self.render_status(frame, ui_layout[0]);
+                self.render_inventory(frame, ui_layout[1]);
+            }
+        }
     }
 
     /// render tiles in gamemap
@@ -187,10 +213,27 @@ impl App {
     fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
         let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
         let display_idx = lines.len().saturating_sub(area.height as usize - 2);
-        let bottom_lines = lines.split_off(display_idx);
+        let lines_to_render = lines.split_off(display_idx);
 
-        let paragraph =
-            Paragraph::new(bottom_lines).block(Block::default().title("log").borders(Borders::ALL));
+        let paragraph = Paragraph::new(lines_to_render)
+            .block(Block::default().title("log").borders(Borders::ALL));
+        frame.render_widget(paragraph, area);
+    }
+
+    /// renders log text with offset to the fullscreen log viewer
+    /// returns the given offset clamped to be in bounds
+    fn render_fullscreen_log(&self, frame: &mut Frame, area: layout::Rect, offset: usize) {
+        let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
+
+        let split_idx = lines
+            .len()
+            .saturating_sub(area.height as usize + offset - 2);
+
+        let _overflow_lines = lines.split_off(lines.len() - offset); // delete the bottom offset lines
+        let lines_to_render = lines.split_off(split_idx); // split off enough lines to fill the log
+
+        let paragraph = Paragraph::new(lines_to_render)
+            .block(Block::default().title("log").borders(Borders::ALL));
         frame.render_widget(paragraph, area);
     }
 

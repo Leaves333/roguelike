@@ -1,12 +1,13 @@
-use color_eyre::{Result, eyre::Ok};
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use ratatui::DefaultTerminal;
+use color_eyre::{eyre::Ok, Result};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::style::Color;
+use ratatui::DefaultTerminal;
 
 use crate::components::{AIType, DeathCallback};
 use crate::gamemap::coords_to_idx;
 use crate::pathfinding::Pathfinder;
 
+use super::render::GameScreen;
 use super::App;
 
 const PLAYER: usize = 0;
@@ -70,6 +71,8 @@ impl App {
                         // update fov
                         let view_radius = 8;
                         self.gamemap.update_fov(view_radius);
+
+                        self.log.push(String::from("### new turn"));
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
@@ -82,48 +85,96 @@ impl App {
         }
     }
 
+    /// translate the key event into the appropriate gameplay actions
     fn handle_keys(&mut self, key: KeyEvent) -> PlayerAction {
-        // player takes an action...
-        self.log.push(String::from("### new turn"));
-        match key.code {
-            KeyCode::Esc => PlayerAction::Exit,
-            KeyCode::Right | KeyCode::Char('l') => {
-                self.bump_action(PLAYER, InputDirection::Right);
-                PlayerAction::TookTurn
+        // match generic keybinds, used for menu navigation
+        // NOTE: these need to be handled first
+        match key.modifiers {
+            KeyModifiers::CONTROL => match key.code {
+                KeyCode::Char('l') => {
+                    self.toggle_fullscreen_log();
+                    return PlayerAction::DidntTakeTurn;
+                }
+                _ => {}
+            },
+            _ => match key.code {
+                KeyCode::Esc => {
+                    return PlayerAction::Exit;
+                }
+                _ => {}
+            },
+        };
+
+        // keybinds specific to certain gamescreens
+        match self.game_screen {
+            GameScreen::Main => {
+                match key.code {
+                    KeyCode::Right | KeyCode::Char('l') => {
+                        self.bump_action(PLAYER, InputDirection::Right);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Left | KeyCode::Char('h') => {
+                        self.bump_action(PLAYER, InputDirection::Left);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        self.bump_action(PLAYER, InputDirection::Down);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        self.bump_action(PLAYER, InputDirection::Up);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Char('u') => {
+                        self.bump_action(PLAYER, InputDirection::UpRight);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Char('y') => {
+                        self.bump_action(PLAYER, InputDirection::UpLeft);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Char('n') => {
+                        self.bump_action(PLAYER, InputDirection::DownRight);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Char('b') => {
+                        self.bump_action(PLAYER, InputDirection::DownLeft);
+                        return PlayerAction::TookTurn;
+                    }
+                    KeyCode::Char('5') | KeyCode::Char('.') => {
+                        // wait action, nothing is done
+                        return PlayerAction::TookTurn;
+                    }
+                    _ => {
+                        return PlayerAction::DidntTakeTurn;
+                    }
+                }
             }
-            KeyCode::Left | KeyCode::Char('h') => {
-                self.bump_action(PLAYER, InputDirection::Left);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                self.bump_action(PLAYER, InputDirection::Down);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                self.bump_action(PLAYER, InputDirection::Up);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Char('u') => {
-                self.bump_action(PLAYER, InputDirection::UpRight);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Char('y') => {
-                self.bump_action(PLAYER, InputDirection::UpLeft);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Char('n') => {
-                self.bump_action(PLAYER, InputDirection::DownRight);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Char('b') => {
-                self.bump_action(PLAYER, InputDirection::DownLeft);
-                PlayerAction::TookTurn
-            }
-            KeyCode::Char('5') | KeyCode::Char('.') => {
-                // wait action, nothing is done
-                PlayerAction::TookTurn
-            }
-            _ => PlayerAction::DidntTakeTurn,
+            GameScreen::Log { ref mut offset } => match key.code {
+                KeyCode::PageUp => {
+                    *offset += 10;
+                }
+                KeyCode::PageDown => {
+                    *offset = offset.saturating_sub(10);
+                }
+                KeyCode::Char('k') => {
+                    *offset += 1;
+                }
+                KeyCode::Char('j') => {
+                    *offset = offset.saturating_sub(1);
+                }
+                _ => {}
+            },
+        };
+
+        // if no existing keybinds were matched
+        return PlayerAction::DidntTakeTurn;
+    }
+
+    fn toggle_fullscreen_log(&mut self) {
+        match self.game_screen {
+            GameScreen::Log { offset: _ } => self.game_screen = GameScreen::Main,
+            _ => self.game_screen = GameScreen::Log { offset: 0 },
         }
     }
 

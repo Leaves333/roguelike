@@ -1,3 +1,5 @@
+use render::GameScreen;
+
 use crate::{
     entities::{self, spawn},
     gamemap::GameMap,
@@ -11,6 +13,7 @@ pub const PLAYER: usize = 0;
 
 pub struct App {
     gamemap: GameMap,
+    game_screen: GameScreen,
     log: Vec<String>,
 }
 
@@ -40,6 +43,10 @@ impl App {
         );
 
         gamemap.update_fov(8);
-        Self { gamemap, log }
+        Self {
+            gamemap,
+            game_screen: GameScreen::Main,
+            log,
+        }
     }
 }
