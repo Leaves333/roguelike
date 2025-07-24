@@ -20,10 +20,18 @@ pub struct Renderable {
 }
 
 #[derive(Clone)]
+pub enum RenderStatus {
+    Hide,
+    ShowInFOV,
+    AlwaysShow,
+}
+
+#[derive(Clone)]
 pub struct Object {
     pub name: String,
     pub pos: Position,
     pub renderable: Renderable,
+    pub render_status: RenderStatus,
     pub blocks_movement: bool,
     pub alive: bool,
     pub fighter: Option<Fighter>,

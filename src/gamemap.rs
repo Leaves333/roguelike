@@ -1,12 +1,6 @@
-use std::collections::HashSet;
+use crate::components::Renderable;
 
 use ratatui::style::Color;
-
-use crate::{
-    app::PLAYER,
-    components::{Object, Renderable},
-    los,
-};
 
 #[derive(Clone)]
 pub struct Tile {
@@ -88,18 +82,18 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
-    pub objects: Vec<Object>,
-    tiles: Vec<Tile>,
-    visible: Vec<bool>,
-    explored: Vec<bool>,
+    pub object_ids: Vec<usize>,
+    pub tiles: Vec<Tile>,
+    pub visible: Vec<bool>,
+    pub explored: Vec<bool>,
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16, objects: Vec<Object>) -> Self {
+    pub fn new(width: u16, height: u16, object_ids: Vec<usize>) -> Self {
         Self {
             width,
             height,
-            objects: objects,
+            object_ids,
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
@@ -135,70 +129,5 @@ impl GameMap {
     // quickly check if an index is in bounds
     pub fn in_bounds(&self, x: i16, y: i16) -> bool {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
-    }
-
-    pub fn get_blocking_object_id(&self, x: u16, y: u16) -> Option<usize> {
-        for i in 0..self.objects.len() {
-            let obj = &self.objects[i];
-            if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
-                return Some(i);
-            }
-        }
-        return None;
-    }
-
-    // recompute visible area based on the player's fov
-    pub fn update_fov(&mut self, radius: u16) {
-        // TODO: use a different symmetric algo to calculate line of sight
-
-        let position = &self.objects[PLAYER].pos;
-        let (player_x, player_y) = (position.x, position.y);
-
-        self.visible.fill(false);
-
-        // calculate bounds for visibility
-        let (xlow, xhigh) = (
-            (player_x.saturating_sub(radius)).max(0),
-            (player_x + radius).min(self.width - 1),
-        );
-        let (ylow, yhigh) = (
-            (player_y.saturating_sub(radius)).max(0),
-            (player_y + radius).min(self.width - 1),
-        );
-
-        // loop through each x, y to check visibility
-        let mut visited = HashSet::new();
-        for target_x in xlow..=xhigh {
-            for target_y in ylow..=yhigh {
-                // already checked this square
-                if visited.contains(&(target_x, target_y)) {
-                    continue;
-                }
-
-                // calculate los path from player to target square
-                let path: Vec<(u16, u16)> = los::bresenham(
-                    (player_x.into(), player_y.into()),
-                    (target_x.into(), target_y.into()),
-                )
-                .iter()
-                .map(|&(x, y)| (x as u16, y as u16))
-                .collect();
-
-                // walk along the path to check for visibility
-                for (x, y) in path {
-                    visited.insert((x, y));
-                    if !self.get_ref(x, y).transparent {
-                        self.set_visible(x, y, true);
-                        break;
-                    }
-                    self.set_visible(x, y, true);
-                }
-            }
-        }
-
-        // explored |= visible
-        for (e, &v) in self.explored.iter_mut().zip(self.visible.iter()) {
-            *e |= v;
-        }
     }
 }

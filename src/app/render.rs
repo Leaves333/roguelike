@@ -9,7 +9,7 @@ use ratatui::{
 
 use super::{App, PLAYER};
 use crate::{
-    components::{Position, Renderable},
+    components::{Position, RenderStatus, Renderable},
     gamemap,
 };
 
@@ -189,23 +189,37 @@ impl App {
             vertical: 1,
         });
 
-        let mut to_draw = self.gamemap.objects.clone();
-        to_draw.sort_by(|a, b| a.blocks_movement.cmp(&b.blocks_movement));
+        let mut indices_to_draw = self.gamemap.object_ids.clone();
+        indices_to_draw.sort_by(|a, b| {
+            let obj_a = self.objects.get(&a).unwrap();
+            let obj_b = self.objects.get(&b).unwrap();
+            obj_a.blocks_movement.cmp(&obj_b.blocks_movement)
+        });
 
-        for obj in to_draw {
+        for obj in indices_to_draw
+            .iter()
+            .map(|id| self.objects.get(id).unwrap())
+        {
             let position = &obj.pos;
             let renderable = &obj.renderable;
-
-            // render only visible entities
-            if !self.gamemap.is_visible(position.x, position.y) {
-                continue;
-            }
 
             let ch = CharWidget {
                 position: position.clone(),
                 renderable: renderable.clone(),
             };
-            frame.render_widget(ch, inner_area);
+
+            match obj.render_status {
+                RenderStatus::Hide => {}
+                RenderStatus::ShowInFOV => {
+                    // render only visible entities
+                    if self.gamemap.is_visible(position.x, position.y) {
+                        frame.render_widget(ch, inner_area);
+                    }
+                }
+                RenderStatus::AlwaysShow => {
+                    frame.render_widget(ch, inner_area);
+                }
+            }
         }
     }
 
@@ -254,7 +268,7 @@ impl App {
         let label_area = layout[0];
         let gauge_area = layout[1];
 
-        let player = &self.gamemap.objects[PLAYER];
+        let player = &self.objects.get(&PLAYER).unwrap();
         let fighter = &player.fighter.as_ref().unwrap();
         let ratio = fighter.hp as f64 / fighter.max_hp as f64;
 

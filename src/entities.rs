@@ -1,6 +1,8 @@
 // this file contains a list of spawnable entities
 
-use crate::components::{AIType, DeathCallback, Fighter, Object, Position, Renderable};
+use crate::components::{
+    AIType, DeathCallback, Fighter, Object, Position, RenderStatus, Renderable,
+};
 use ratatui::style::Color;
 
 pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
@@ -18,6 +20,7 @@ pub fn player() -> Object {
             fg: Color::default(),
             bg: Color::Reset,
         },
+        render_status: RenderStatus::AlwaysShow,
         blocks_movement: true,
         alive: true,
         fighter: Some({
@@ -39,6 +42,7 @@ pub fn orc() -> Object {
             fg: Color::Red,
             bg: Color::Reset,
         },
+        render_status: RenderStatus::ShowInFOV,
         blocks_movement: true,
         alive: true,
         fighter: Some({
@@ -60,6 +64,7 @@ pub fn troll() -> Object {
             fg: Color::Green,
             bg: Color::Reset,
         },
+        render_status: RenderStatus::ShowInFOV,
         blocks_movement: true,
         alive: true,
         fighter: Some({

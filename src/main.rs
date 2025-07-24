@@ -6,7 +6,6 @@ mod entities;
 mod gamemap;
 mod los;
 mod pathfinding;
-mod procgen;
 
 fn main() -> Result<()> {
     color_eyre::install()?;

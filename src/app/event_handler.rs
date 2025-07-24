@@ -1,16 +1,18 @@
-use color_eyre::{eyre::Ok, Result};
+use core::panic;
+use std::collections::HashSet;
+
+use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
-use ratatui::style::Color;
 use ratatui::DefaultTerminal;
+use ratatui::style::Color;
 
 use crate::components::{AIType, DeathCallback};
 use crate::gamemap::coords_to_idx;
+use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::render::GameScreen;
-use super::App;
-
-const PLAYER: usize = 0;
+use super::{App, PLAYER};
 
 enum InputDirection {
     Up,
@@ -70,7 +72,7 @@ impl App {
 
                         // update fov
                         let view_radius = 8;
-                        self.gamemap.update_fov(view_radius);
+                        self.update_fov(view_radius);
 
                         self.log.push(String::from("### new turn"));
                     }
@@ -180,8 +182,14 @@ impl App {
 
     /// makes all the monsters take a turn
     fn handle_monster_turns(&mut self) {
-        for i in 0..self.gamemap.objects.len() {
-            let obj = &self.gamemap.objects[i];
+        for id in self.gamemap.object_ids.clone().iter() {
+            let obj = match self.objects.get(id) {
+                None => {
+                    continue;
+                }
+                Some(x) => x,
+            };
+
             if !obj.alive {
                 continue;
             }
@@ -189,7 +197,7 @@ impl App {
             if let Some(ai_type) = &obj.ai {
                 match ai_type {
                     AIType::Melee => {
-                        self.handle_melee_ai(i);
+                        self.handle_melee_ai(id.clone());
                     }
                 }
             }
@@ -198,8 +206,10 @@ impl App {
 
     /// makes a monster act according to melee ai
     fn handle_melee_ai(&mut self, id: usize) {
-        let monster = &self.gamemap.objects[id];
-        let player = &self.gamemap.objects[PLAYER];
+        let [Some(player), Some(monster)] = self.objects.get_disjoint_mut([&PLAYER, &id]) else {
+            panic!("invalid ids while handling melee ai!")
+        };
+
         let out_of_range =
             monster.pos.x.abs_diff(player.pos.x) > 8 || monster.pos.y.abs_diff(player.pos.y) > 8;
 
@@ -251,18 +261,18 @@ impl App {
             return; // destination is blocked by a tile
         }
 
-        if let Some(_) = self.gamemap.get_blocking_object_id(target_x, target_y) {
+        if let Some(_) = self.get_blocking_object_id(target_x, target_y) {
             return; // destination is blocked by an object
         }
 
-        let pos = &mut self.gamemap.objects[id].pos;
+        let pos = &mut self.objects.get_mut(&id).unwrap().pos;
         pos.x = target_x;
         pos.y = target_y;
     }
 
     fn melee_action(&mut self, attacker_id: usize, (target_x, target_y): (u16, u16)) {
         // check that there is an object to attack
-        let target_id = match self.gamemap.get_blocking_object_id(target_x, target_y) {
+        let target_id = match self.get_blocking_object_id(target_x, target_y) {
             Some(x) => x,
             None => {
                 return; // should never hit this case
@@ -270,7 +280,14 @@ impl App {
         };
 
         // TODO: implement actual melee attack code
-        let (attacker, target) = mut_two(attacker_id, target_id, &mut self.gamemap.objects);
+
+        // let (attacker, target) = mut_two(attacker_id, target_id, &mut self.gamemap.objects);
+        let [Some(attacker), Some(target)] =
+            self.objects.get_disjoint_mut([&attacker_id, &target_id])
+        else {
+            panic!("invalid ids passed to melee_action()!");
+        };
+
         let attacker_fighter = &attacker.fighter.as_ref().unwrap();
         let target_fighter = &mut target.fighter.as_mut().unwrap();
 
@@ -289,7 +306,7 @@ impl App {
 
     fn bump_action(&mut self, id: usize, direction: InputDirection) {
         // check that action target is in bounds
-        let pos = &self.gamemap.objects[id].pos;
+        let pos = &self.objects.get(&id).unwrap().pos;
         let deltas = direction_to_deltas(direction);
         let (dx, dy) = deltas;
         if !self.gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
@@ -298,7 +315,7 @@ impl App {
         let (target_x, target_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
 
         // decide which action to take
-        match self.gamemap.get_blocking_object_id(target_x, target_y) {
+        match self.get_blocking_object_id(target_x, target_y) {
             Some(_) => {
                 self.melee_action(id, (target_x, target_y));
             }
@@ -310,7 +327,7 @@ impl App {
 
     fn take_damage(&mut self, id: usize, damage: u16) {
         // apply damage if possible
-        let obj = &mut self.gamemap.objects[id];
+        let obj = &mut self.objects.get_mut(&id).unwrap();
         let mut death_callback = None;
         if let Some(fighter) = obj.fighter.as_mut() {
             if damage > 0 {
@@ -335,7 +352,7 @@ impl App {
     }
 
     fn player_death(&mut self) {
-        let player = &mut self.gamemap.objects[PLAYER];
+        let player = &mut self.objects.get_mut(&PLAYER).unwrap();
         self.log.push(String::from("you died!"));
 
         let renderable = &mut player.renderable;
@@ -344,7 +361,7 @@ impl App {
     }
 
     fn monster_death(&mut self, id: usize) {
-        let monster = &mut self.gamemap.objects[id];
+        let monster = &mut self.objects.get_mut(&id).unwrap();
         self.log.push(format!("{} dies!", monster.name));
 
         let renderable = &mut monster.renderable;
@@ -355,5 +372,75 @@ impl App {
         monster.alive = false;
         monster.fighter = None;
         monster.name = format!("remains of {}", monster.name);
+    }
+
+    pub fn get_blocking_object_id(&self, x: u16, y: u16) -> Option<usize> {
+        for id in self.gamemap.object_ids.iter() {
+            let obj = &self.objects.get(id).unwrap();
+            if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
+                return Some(id.clone());
+            }
+        }
+        return None;
+    }
+
+    // recompute visible area based on the player's fov
+    pub fn update_fov(&mut self, radius: u16) {
+        // TODO: use a different symmetric algo to calculate line of sight
+
+        let position = &self.objects.get(&PLAYER).unwrap().pos;
+        let (player_x, player_y) = (position.x, position.y);
+
+        self.gamemap.visible.fill(false);
+
+        // calculate bounds for visibility
+        let (xlow, xhigh) = (
+            (player_x.saturating_sub(radius)).max(0),
+            (player_x + radius).min(self.gamemap.width - 1),
+        );
+        let (ylow, yhigh) = (
+            (player_y.saturating_sub(radius)).max(0),
+            (player_y + radius).min(self.gamemap.width - 1),
+        );
+
+        // loop through each x, y to check visibility
+        let mut visited = HashSet::new();
+        for target_x in xlow..=xhigh {
+            for target_y in ylow..=yhigh {
+                // already checked this square
+                if visited.contains(&(target_x, target_y)) {
+                    continue;
+                }
+
+                // calculate los path from player to target square
+                let path: Vec<(u16, u16)> = los::bresenham(
+                    (player_x.into(), player_y.into()),
+                    (target_x.into(), target_y.into()),
+                )
+                .iter()
+                .map(|&(x, y)| (x as u16, y as u16))
+                .collect();
+
+                // walk along the path to check for visibility
+                for (x, y) in path {
+                    visited.insert((x, y));
+                    if !self.gamemap.get_ref(x, y).transparent {
+                        self.gamemap.set_visible(x, y, true);
+                        break;
+                    }
+                    self.gamemap.set_visible(x, y, true);
+                }
+            }
+        }
+
+        // explored |= visible
+        for (e, &v) in self
+            .gamemap
+            .explored
+            .iter_mut()
+            .zip(self.gamemap.visible.iter())
+        {
+            *e |= v;
+        }
     }
 }
