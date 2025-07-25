@@ -68,6 +68,7 @@ impl App {
         room_min_size: u16,
         room_max_size: u16,
         max_monsters_per_room: u16,
+        max_items_per_room: u16,
         width: u16,
         height: u16,
     ) {
@@ -109,7 +110,12 @@ impl App {
                 }
             }
 
-            self.place_entities(&new_room, &mut dungeon, max_monsters_per_room);
+            self.place_objects(
+                &new_room,
+                &mut dungeon,
+                max_monsters_per_room,
+                max_items_per_room,
+            );
 
             rooms.push(new_room);
         }
@@ -117,15 +123,17 @@ impl App {
         self.gamemap = dungeon;
     }
 
-    fn place_entities(
+    fn place_objects(
         &mut self,
         room: &RectangularRoom,
         dungeon: &mut GameMap,
         maximum_monsters: u16,
+        maximum_items: u16,
     ) {
         let mut rng = rand::rng();
-        let number_of_monsters = rng.random_range(0..=maximum_monsters);
 
+        // place monsters
+        let number_of_monsters = rng.random_range(0..=maximum_monsters);
         for _ in 0..number_of_monsters {
             let x = rng.random_range((room.x1 + 1)..room.x2);
             let y = rng.random_range((room.y1 + 1)..room.y2);
@@ -145,6 +153,26 @@ impl App {
                 self.objects
                     .insert(self.next_id, spawn(x, y, entities::troll()));
             }
+            dungeon.object_ids.push(self.next_id);
+            self.next_id += 1;
+        }
+
+        // use similar logic for items
+        let number_of_items = rng.random_range(0..=maximum_monsters);
+        for _ in 0..number_of_items {
+            let x = rng.random_range((room.x1 + 1)..room.x2);
+            let y = rng.random_range((room.y1 + 1)..room.y2);
+
+            // check if it intersects with any entities
+            match self.get_blocking_object_id(x, y) {
+                Some(_) => {
+                    continue;
+                }
+                None => {}
+            }
+
+            self.objects
+                .insert(self.next_id, spawn(x, y, entities::healing_potion()));
             dungeon.object_ids.push(self.next_id);
             self.next_id += 1;
         }

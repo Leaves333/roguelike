@@ -76,3 +76,20 @@ pub fn troll() -> Object {
         ai: Some(AIType::Melee),
     }
 }
+
+pub fn healing_potion() -> Object {
+    Object {
+        name: String::from("healing potion"),
+        pos: Position::default(),
+        renderable: Renderable {
+            glyph: '!',
+            fg: Color::Magenta,
+            bg: Color::Reset,
+        },
+        render_status: RenderStatus::ShowInFOV,
+        blocks_movement: false,
+        alive: false,
+        fighter: None,
+        ai: None,
+    }
+}
