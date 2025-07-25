@@ -36,6 +36,45 @@ pub struct Object {
     pub alive: bool,
     pub fighter: Option<Fighter>,
     pub ai: Option<AIType>,
+    pub item: Option<Item>,
+}
+
+impl Object {
+    /// constructs a new object with default position. sets all Option<_> fields to None by default.
+    pub fn new(
+        name: String,
+        renderable: Renderable,
+        render_status: RenderStatus,
+        blocks_movement: bool,
+        alive: bool,
+    ) -> Self {
+        Self {
+            name,
+            pos: Position::default(),
+            renderable,
+            render_status,
+            blocks_movement,
+            alive,
+            fighter: None,
+            ai: None,
+            item: None,
+        }
+    }
+
+    pub fn fighter(mut self, fighter: Fighter) -> Self {
+        self.fighter = Some(fighter);
+        self
+    }
+
+    pub fn ai(mut self, ai: AIType) -> Self {
+        self.ai = Some(ai);
+        self
+    }
+
+    pub fn item(mut self, item: Item) -> Self {
+        self.item = Some(item);
+        self
+    }
 }
 
 #[derive(Clone)]
@@ -68,4 +107,9 @@ pub enum AIType {
 pub enum DeathCallback {
     Player,
     Monster,
+}
+
+#[derive(Clone)]
+pub enum Item {
+    Heal,
 }

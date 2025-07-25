@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, DeathCallback};
+use crate::components::{AIType, DeathCallback, RenderStatus};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
@@ -111,6 +111,7 @@ impl App {
         match self.game_screen {
             GameScreen::Main => {
                 match key.code {
+                    // movement keys
                     KeyCode::Right | KeyCode::Char('l') => {
                         self.bump_action(PLAYER, InputDirection::Right);
                         return PlayerAction::TookTurn;
@@ -147,9 +148,28 @@ impl App {
                         // wait action, nothing is done
                         return PlayerAction::TookTurn;
                     }
-                    _ => {
-                        return PlayerAction::DidntTakeTurn;
+
+                    // actual controls lol
+                    KeyCode::Char('g') => {
+                        // pick up the first item at location
+                        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+                        let id = self.gamemap.object_ids.iter().find(|x| {
+                            let obj = &self.objects.get(x).unwrap();
+                            obj.pos.x == player_pos.x
+                                && obj.pos.y == player_pos.y
+                                && obj.item.is_some()
+                        });
+                        match id {
+                            Some(id) => {
+                                self.pick_item_up(id.clone());
+                                return PlayerAction::TookTurn;
+                            }
+                            None => {
+                                return PlayerAction::DidntTakeTurn;
+                            }
+                        }
                     }
+                    _ => {}
                 }
             }
             GameScreen::Log { ref mut offset } => match key.code {
@@ -441,6 +461,31 @@ impl App {
             .zip(self.gamemap.visible.iter())
         {
             *e |= v;
+        }
+    }
+
+    /// moves and item from the gamemap into the player inventory based on object id
+    fn pick_item_up(&mut self, id: usize) {
+        if self.inventory.len() >= 10 {
+            self.log.push(format!("Cannot hold that many items."));
+        } else {
+            let idx = self.gamemap.object_ids.iter().position(|&x| x == id);
+            match idx {
+                Some(x) => {
+                    // add the item to the inventory
+                    let item_id = self.gamemap.object_ids.swap_remove(x);
+                    self.inventory.push(item_id);
+
+                    // hide it on the map
+                    let item_obj = self.objects.get_mut(&item_id).unwrap();
+                    item_obj.render_status = RenderStatus::Hide;
+
+                    self.log.push(format!("Picked up {}.", item_obj.name));
+                }
+                None => {
+                    panic!("invalid object id passed to pick_item_up()!")
+                }
+            }
         }
     }
 }
