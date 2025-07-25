@@ -287,5 +287,23 @@ impl App {
     fn render_inventory(&self, frame: &mut Frame, area: layout::Rect) {
         let block = Block::default().title("inventory").borders(Borders::ALL);
         frame.render_widget(block, area);
+
+        let mut lines: Vec<Line> = Vec::new();
+        let mut index = 1;
+        for id in &self.inventory {
+            lines.push(Line::from(format!(
+                "({}) {}",
+                index,
+                self.objects.get(id).unwrap().name
+            )));
+            index += 1;
+        }
+
+        let paragraph = Paragraph::new(lines);
+        let inner_area = area.inner(layout::Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+        frame.render_widget(paragraph, inner_area);
     }
 }
