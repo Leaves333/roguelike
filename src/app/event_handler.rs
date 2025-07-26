@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, DeathCallback, RenderStatus};
+use crate::components::{AIType, DeathCallback, Item, RenderStatus};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
@@ -45,6 +45,12 @@ enum PlayerAction {
     Exit,
 }
 
+/// used to determine if an item was sucessfully used
+enum UseResult {
+    UsedUp,
+    Cancelled,
+}
+
 /// mutably borrow two *separate* elements from the given slice.
 /// panics when the indexes are equal or out of bounds.
 /// code from [https://tomassedovic.github.io/roguelike-tutorial/part-6-going-berserk.html]
@@ -74,7 +80,7 @@ impl App {
                         let view_radius = 8;
                         self.update_fov(view_radius);
 
-                        self.log.push(String::from("### new turn"));
+                        // self.log.push(String::from("### new turn"));
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
@@ -144,9 +150,26 @@ impl App {
                         self.bump_action(PLAYER, InputDirection::DownLeft);
                         return PlayerAction::TookTurn;
                     }
-                    KeyCode::Char('5') | KeyCode::Char('.') => {
+                    KeyCode::Char('.') => {
                         // wait action, nothing is done
                         return PlayerAction::TookTurn;
+                    }
+
+                    // inventory keys: '1' to '9' and '0'
+                    KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
+                        let index = match c {
+                            '1'..='9' => c as usize - '1' as usize,
+                            '0' => 9,
+                            _ => unreachable!(),
+                        };
+
+                        if self.inventory.len() > index {
+                            let use_result = self.use_item(index);
+                            return match use_result {
+                                UseResult::UsedUp => PlayerAction::TookTurn,
+                                UseResult::Cancelled => PlayerAction::DidntTakeTurn,
+                            };
+                        }
                     }
 
                     // actual controls lol
@@ -362,12 +385,19 @@ impl App {
             fighter.hp = fighter.hp.min(fighter.max_hp);
         }
 
-        // TODO: death code
         if let Some(callback) = death_callback {
             match callback {
                 DeathCallback::Player => self.player_death(),
                 DeathCallback::Monster => self.monster_death(id),
             }
+        }
+    }
+
+    fn heal(&mut self, id: usize, heal_amount: u16) {
+        let obj = &mut self.objects.get_mut(&id).unwrap();
+        if let Some(fighter) = obj.fighter.as_mut() {
+            fighter.hp += heal_amount;
+            fighter.hp = fighter.hp.max(fighter.max_hp)
         }
     }
 
@@ -486,6 +516,52 @@ impl App {
                     panic!("invalid object id passed to pick_item_up()!")
                 }
             }
+        }
+    }
+
+    /// uses an item from the specified index in the inventory
+    fn use_item(&mut self, inventory_idx: usize) -> UseResult {
+        let item_id = self.inventory[inventory_idx];
+        let item = match &self.objects.get(&item_id).unwrap().item {
+            Some(x) => x,
+            None => {
+                panic!("use_item called with an object without an item component!")
+            }
+        };
+
+        let on_use = match item {
+            Item::Heal => self.cast_heal(PLAYER),
+        };
+
+        match on_use {
+            UseResult::UsedUp => {
+                // delete item after being used
+                self.inventory.remove(inventory_idx);
+            }
+            UseResult::Cancelled => {
+                // item wasn't used, don't delete it
+            }
+        };
+
+        on_use
+    }
+
+    pub fn cast_heal(&mut self, target_id: usize) -> UseResult {
+        let fighter = match &self.objects.get(&target_id).unwrap().fighter {
+            Some(x) => x,
+            None => {
+                panic!("trying to cast heal, but target_id does not have a fighter component!")
+            }
+        };
+
+        if fighter.hp == fighter.max_hp {
+            self.log
+                .push(String::from("You are already at full health."));
+            UseResult::Cancelled
+        } else {
+            self.heal(PLAYER, 4);
+            self.log.push(String::from("Your wounds start to close."));
+            UseResult::UsedUp
         }
     }
 }

@@ -72,8 +72,8 @@ pub fn troll() -> Object {
         .ai(AIType::Melee)
 }
 
-pub fn healing_potion() -> Object {
-    let name = String::from("healing potion");
+pub fn potion_cure_wounds() -> Object {
+    let name = String::from("potion of cure wounds");
     let renderable = Renderable {
         glyph: '!',
         fg: Color::Magenta,

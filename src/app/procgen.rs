@@ -172,7 +172,7 @@ impl App {
             }
 
             self.objects
-                .insert(self.next_id, spawn(x, y, entities::healing_potion()));
+                .insert(self.next_id, spawn(x, y, entities::potion_cure_wounds()));
             dungeon.object_ids.push(self.next_id);
             self.next_id += 1;
         }

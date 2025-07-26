@@ -299,6 +299,10 @@ impl App {
             index += 1;
         }
 
+        if self.inventory.len() == 0 {
+            lines.push(Line::from("inventory is empty."));
+        }
+
         let paragraph = Paragraph::new(lines);
         let inner_area = area.inner(layout::Margin {
             horizontal: 1,
