@@ -20,7 +20,7 @@ pub fn player() -> Object {
     let blocks_movement = true;
     let alive = true;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).fighter({
+    Object::new(name, renderable, render_status, blocks_movement, alive).set_fighter({
         let max_hp = 20;
         let defense = 0;
         let power = 2;
@@ -40,13 +40,13 @@ pub fn orc() -> Object {
     let alive = true;
 
     Object::new(name, renderable, render_status, blocks_movement, alive)
-        .fighter({
+        .set_fighter({
             let max_hp = 5;
             let defense = 0;
             let power = 2;
             Fighter::new(max_hp, defense, power, DeathCallback::Monster)
         })
-        .ai(AIType::Melee)
+        .set_ai(AIType::Melee)
 }
 
 pub fn troll() -> Object {
@@ -61,13 +61,13 @@ pub fn troll() -> Object {
     let alive = true;
 
     Object::new(name, renderable, render_status, blocks_movement, alive)
-        .fighter({
+        .set_fighter({
             let max_hp = 8;
             let defense = 1;
             let power = 4;
             Fighter::new(max_hp, defense, power, DeathCallback::Monster)
         })
-        .ai(AIType::Melee)
+        .set_ai(AIType::Melee)
 }
 
 pub fn potion_cure_wounds() -> Object {
@@ -81,7 +81,7 @@ pub fn potion_cure_wounds() -> Object {
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).item(Item::Heal)
+    Object::new(name, renderable, render_status, blocks_movement, alive).set_item(Item::Heal)
 }
 
 pub fn scroll_lightning() -> Object {
@@ -95,5 +95,5 @@ pub fn scroll_lightning() -> Object {
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).item(Item::Lightning)
+    Object::new(name, renderable, render_status, blocks_movement, alive).set_item(Item::Lightning)
 }

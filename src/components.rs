@@ -1,6 +1,6 @@
 use ratatui::style::Color;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Position {
     pub x: u16,
     pub y: u16,
@@ -61,17 +61,17 @@ impl Object {
         }
     }
 
-    pub fn fighter(mut self, fighter: Fighter) -> Self {
+    pub fn set_fighter(mut self, fighter: Fighter) -> Self {
         self.fighter = Some(fighter);
         self
     }
 
-    pub fn ai(mut self, ai: AIType) -> Self {
+    pub fn set_ai(mut self, ai: AIType) -> Self {
         self.ai = Some(ai);
         self
     }
 
-    pub fn item(mut self, item: Item) -> Self {
+    pub fn set_item(mut self, item: Item) -> Self {
         self.item = Some(item);
         self
     }
