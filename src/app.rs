@@ -37,8 +37,8 @@ impl App {
         let max_monsters_per_room = 2;
         let max_items_per_room = 2;
 
-        let dungeon_width = 60;
-        let dungeon_height = 16;
+        let dungeon_width = 80;
+        let dungeon_height = 24;
 
         let mut app = Self {
             // NOTE: this is a dummy gamemap that will get

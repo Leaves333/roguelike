@@ -112,4 +112,5 @@ pub enum DeathCallback {
 #[derive(Clone)]
 pub enum Item {
     Heal,
+    Lightning,
 }

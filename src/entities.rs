@@ -1,8 +1,6 @@
 // this file contains a list of spawnable entities
 
-use crate::components::{
-    AIType, DeathCallback, Fighter, Item, Object, Position, RenderStatus, Renderable,
-};
+use crate::components::{AIType, DeathCallback, Fighter, Item, Object, RenderStatus, Renderable};
 use ratatui::style::Color;
 
 pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
@@ -84,4 +82,18 @@ pub fn potion_cure_wounds() -> Object {
     let alive = false;
 
     Object::new(name, renderable, render_status, blocks_movement, alive).item(Item::Heal)
+}
+
+pub fn scroll_lightning() -> Object {
+    let name = String::from("scroll of lightning");
+    let renderable = Renderable {
+        glyph: '?',
+        fg: Color::Blue,
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(name, renderable, render_status, blocks_movement, alive).item(Item::Lightning)
 }

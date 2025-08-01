@@ -1,4 +1,3 @@
-use color_eyre::owo_colors::OwoColorize;
 use rand::{Rng, random_ratio};
 
 use crate::app::{App, PLAYER};
@@ -158,7 +157,7 @@ impl App {
         }
 
         // use similar logic for items
-        let number_of_items = rng.random_range(0..=maximum_monsters);
+        let number_of_items = rng.random_range(0..=maximum_items);
         for _ in 0..number_of_items {
             let x = rng.random_range((room.x1 + 1)..room.x2);
             let y = rng.random_range((room.y1 + 1)..room.y2);
@@ -171,8 +170,17 @@ impl App {
                 None => {}
             }
 
-            self.objects
-                .insert(self.next_id, spawn(x, y, entities::potion_cure_wounds()));
+            let mut rng = rand::rng();
+            let dice = rng.random::<f32>();
+
+            if dice > 0.5 {
+                self.objects
+                    .insert(self.next_id, spawn(x, y, entities::scroll_lightning()));
+            } else {
+                self.objects
+                    .insert(self.next_id, spawn(x, y, entities::potion_cure_wounds()));
+            }
+
             dungeon.object_ids.push(self.next_id);
             self.next_id += 1;
         }

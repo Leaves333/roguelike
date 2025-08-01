@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use rand::seq::IndexedRandom;
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
@@ -46,7 +47,7 @@ enum PlayerAction {
 }
 
 /// used to determine if an item was sucessfully used
-enum UseResult {
+pub enum UseResult {
     UsedUp,
     Cancelled,
 }
@@ -322,9 +323,6 @@ impl App {
             }
         };
 
-        // TODO: implement actual melee attack code
-
-        // let (attacker, target) = mut_two(attacker_id, target_id, &mut self.gamemap.objects);
         let [Some(attacker), Some(target)] =
             self.objects.get_disjoint_mut([&attacker_id, &target_id])
         else {
@@ -530,7 +528,8 @@ impl App {
         };
 
         let on_use = match item {
-            Item::Heal => self.cast_heal(PLAYER),
+            Item::Heal => self.cast_heal(),
+            Item::Lightning => self.cast_lightning(),
         };
 
         match on_use {
@@ -546,8 +545,9 @@ impl App {
         on_use
     }
 
-    pub fn cast_heal(&mut self, target_id: usize) -> UseResult {
-        let fighter = match &self.objects.get(&target_id).unwrap().fighter {
+    /// effects of a potion of healing. heals the player for 4 hp
+    pub fn cast_heal(&mut self) -> UseResult {
+        let fighter = match &self.objects.get(&PLAYER).unwrap().fighter {
             Some(x) => x,
             None => {
                 panic!("trying to cast heal, but target_id does not have a fighter component!")
@@ -563,5 +563,52 @@ impl App {
             self.log.push(String::from("Your wounds start to close."));
             UseResult::UsedUp
         }
+    }
+
+    /// effects of a scroll of lightning. randomly smites a target within line of sight
+    pub fn cast_lightning(&mut self) -> UseResult {
+        // get all fighters within line of sight, minus the player
+        let mut valid_targets = Vec::new();
+        for id in self.gamemap.object_ids.iter() {
+            let pos = &self.objects.get(id).unwrap().pos;
+            if *id == PLAYER || !self.gamemap.is_visible(pos.x, pos.y) {
+                continue;
+            }
+
+            if let Some(_fighter) = &self.objects.get(id).unwrap().fighter {
+                valid_targets.push(*id);
+            }
+        }
+
+        if valid_targets.len() == 0 {
+            self.log.push(format!("No targets in sight."));
+            return UseResult::Cancelled;
+        }
+
+        let mut rng = rand::rng();
+        let target_id = valid_targets.choose(&mut rng).unwrap();
+        let fighter = match &self.objects.get(target_id).unwrap().fighter {
+            Some(x) => x,
+            None => {
+                panic!("trying to cast lightning, but target_id does not have a fighter component!")
+            }
+        };
+
+        const LIGHTNING_DAMAGE: i16 = 8;
+        let damage = LIGHTNING_DAMAGE - fighter.defense;
+
+        let target_obj = self.objects.get(target_id).unwrap();
+        let attack_desc = format!("Lightning smites the {}", target_obj.name);
+
+        if damage > 0 {
+            self.take_damage(*target_id, damage as u16);
+            self.log
+                .push(format!("{} for {} damage.", attack_desc, damage));
+        } else {
+            self.log
+                .push(format!("{} but does no damage.", attack_desc));
+        }
+
+        UseResult::UsedUp
     }
 }
