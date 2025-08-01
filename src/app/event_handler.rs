@@ -173,6 +173,12 @@ impl App {
                         }
                     }
 
+                    // can only go to examine mode on main game screen
+                    KeyCode::Char('x') => {
+                        self.toggle_examine_mode();
+                        return PlayerAction::DidntTakeTurn;
+                    }
+
                     // actual controls lol
                     KeyCode::Char('g') => {
                         // pick up the first item at location
@@ -211,6 +217,26 @@ impl App {
                 }
                 _ => {}
             },
+            GameScreen::Examine { ref mut cursor } => match key.code {
+                KeyCode::Down | KeyCode::Char('j') => {
+                    cursor.y += 1;
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    cursor.y -= 1;
+                }
+                KeyCode::Right | KeyCode::Char('l') => {
+                    cursor.x += 1;
+                }
+                KeyCode::Left | KeyCode::Char('h') => {
+                    cursor.x -= 1;
+                }
+                // exit examine mode
+                KeyCode::Char('x') => {
+                    self.toggle_examine_mode();
+                    return PlayerAction::DidntTakeTurn;
+                }
+                _ => {}
+            },
         };
 
         // if no existing keybinds were matched
@@ -221,6 +247,18 @@ impl App {
         match self.game_screen {
             GameScreen::Log { offset: _ } => self.game_screen = GameScreen::Main,
             _ => self.game_screen = GameScreen::Log { offset: 0 },
+        }
+    }
+
+    fn toggle_examine_mode(&mut self) {
+        match self.game_screen {
+            GameScreen::Examine { cursor: _ } => self.game_screen = GameScreen::Main,
+            _ => {
+                // set default cursor location to player's position
+                self.game_screen = GameScreen::Examine {
+                    cursor: { self.objects.get(&PLAYER).unwrap().pos.clone() },
+                }
+            }
         }
     }
 

@@ -16,6 +16,7 @@ use crate::{
 pub enum GameScreen {
     Main,
     Log { offset: usize },
+    Examine { cursor: Position },
 }
 
 #[derive(Clone)]
@@ -151,6 +152,15 @@ impl App {
                 self.render_status(frame, ui_layout[0]);
                 self.render_inventory(frame, ui_layout[1]);
             }
+            GameScreen::Examine { cursor } => {
+                self.render_map(frame, world_layout[0]);
+                self.render_entities(frame, world_layout[0]);
+                self.render_examine_cursor(frame, world_layout[0], &cursor);
+                self.render_examine_info(frame, world_layout[1], &cursor);
+
+                self.render_status(frame, ui_layout[0]);
+                self.render_inventory(frame, ui_layout[1]);
+            }
         }
     }
 
@@ -178,6 +188,55 @@ impl App {
                 frame.render_widget(ch, inner_area);
             }
         }
+    }
+
+    /// render the cursor in the map after rendering everything else
+    fn render_examine_cursor(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
+        // use inner_area because render_map() also renders to this
+        let inner_area = area.inner(layout::Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+
+        // swap the fg and bg colors of the cell the cursor is highlighting
+        let buf = frame.buffer_mut();
+        let coords = (cursor.x + inner_area.x, cursor.y + inner_area.y);
+        let cell = &mut buf[coords];
+
+        let (fg, _bg) = (cell.fg, cell.bg);
+        cell.set_fg(Color::Black);
+        cell.set_bg(fg);
+    }
+
+    /// displays information about the examined item
+    fn render_examine_info(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
+        // find all the objects located at the cursor
+        let mut names = Vec::new();
+        for id in self.gamemap.object_ids.iter() {
+            let obj = self.objects.get(id).unwrap();
+            if &obj.pos == cursor {
+                names.push(&obj.name);
+            }
+        }
+
+        let mut lines: Vec<Line> = Vec::new();
+        lines.push(format!("Things here:").into());
+
+        if names.len() == 0 {
+            lines.push(format!("\tThe floor.").into());
+        } else {
+            for name in names {
+                lines.push(format!("\t{}", name).into());
+            }
+        }
+
+        let inner_area = area.inner(layout::Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+        let paragraph =
+            Paragraph::new(lines).block(Block::default().title("examine").borders(Borders::ALL));
+        frame.render_widget(paragraph, area);
     }
 
     /// render all objects in the gamemap to screen

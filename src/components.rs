@@ -1,6 +1,6 @@
 use ratatui::style::Color;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Position {
     pub x: u16,
     pub y: u16,

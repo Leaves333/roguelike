@@ -13,7 +13,7 @@ pub fn player() -> Object {
     let name = String::from("Player");
     let renderable = Renderable {
         glyph: '@',
-        fg: Color::default(),
+        fg: Color::White,
         bg: Color::Reset,
     };
     let render_status = RenderStatus::AlwaysShow;
