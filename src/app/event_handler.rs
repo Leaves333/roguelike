@@ -433,7 +433,7 @@ impl App {
         let obj = &mut self.objects.get_mut(&id).unwrap();
         if let Some(fighter) = obj.fighter.as_mut() {
             fighter.hp += heal_amount;
-            fighter.hp = fighter.hp.max(fighter.max_hp)
+            fighter.hp = fighter.hp.min(fighter.max_hp)
         }
     }
 
