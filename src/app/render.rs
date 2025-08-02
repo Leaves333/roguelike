@@ -4,7 +4,7 @@ use ratatui::{
     layout,
     style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Clear, Paragraph, Widget},
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 
 use super::{App, PLAYER};
@@ -331,7 +331,7 @@ impl App {
         frame.render_widget(paragraph, area);
     }
 
-    /// renders inventory ui on the left side of the screen
+    /// renders healthbar on the left side of the screen
     fn render_status(&self, frame: &mut Frame, area: layout::Rect) {
         let block = Block::default().title("character").borders(Borders::ALL);
         frame.render_widget(block, area);
@@ -373,7 +373,7 @@ impl App {
         for id in &self.inventory {
             lines.push(Line::from(format!(
                 "({}) {}",
-                index,
+                index % 10,
                 self.objects.get(id).unwrap().name
             )));
             index += 1;
