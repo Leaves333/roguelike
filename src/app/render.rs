@@ -203,9 +203,19 @@ impl App {
         let coords = (cursor.x + inner_area.x, cursor.y + inner_area.y);
         let cell = &mut buf[coords];
 
-        let (fg, _bg) = (cell.fg, cell.bg);
-        cell.set_fg(Color::Black);
-        cell.set_bg(fg);
+        let (fg, bg) = (cell.fg, cell.bg);
+
+        if bg == Color::Reset {
+            cell.set_fg(Color::Black);
+        } else {
+            cell.set_fg(bg);
+        }
+
+        if fg == Color::default() {
+            cell.set_bg(Color::Gray);
+        } else {
+            cell.set_bg(fg);
+        }
     }
 
     /// displays information about the examined item
@@ -230,10 +240,6 @@ impl App {
             }
         }
 
-        let inner_area = area.inner(layout::Margin {
-            horizontal: 1,
-            vertical: 1,
-        });
         let paragraph =
             Paragraph::new(lines).block(Block::default().title("examine").borders(Borders::ALL));
         frame.render_widget(paragraph, area);
