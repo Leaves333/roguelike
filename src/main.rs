@@ -2,6 +2,7 @@ use color_eyre::Result;
 
 mod app;
 mod components;
+mod engine;
 mod entities;
 mod gamemap;
 mod los;

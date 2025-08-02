@@ -1,0 +1,148 @@
+use std::collections::HashMap;
+
+use rand::seq::IndexedRandom;
+use ratatui::style::Color;
+
+use crate::{
+    app::PLAYER,
+    components::{DeathCallback, Object},
+    gamemap::GameMap,
+};
+
+// NOTE: this crate contains functions that control the gameplay
+
+/// used to determine if an item was sucessfully used
+pub enum UseResult {
+    UsedUp,
+    Cancelled,
+}
+
+/// heals an entity for the specified amount
+pub fn heal(objects: &mut HashMap<usize, Object>, id: usize, heal_amount: u16) {
+    let obj = objects.get_mut(&id).unwrap();
+    if let Some(fighter) = obj.fighter.as_mut() {
+        fighter.hp += heal_amount;
+        fighter.hp = fighter.hp.min(fighter.max_hp)
+    }
+}
+
+/// applies damage to an entity for the specified amount
+pub fn take_damage(
+    objects: &mut HashMap<usize, Object>,
+    log: &mut Vec<String>,
+    id: usize,
+    damage: u16,
+) {
+    let obj = &mut objects.get_mut(&id).unwrap();
+    let mut death_callback = None;
+    if let Some(fighter) = obj.fighter.as_mut() {
+        if damage > 0 {
+            fighter.hp = fighter.hp.saturating_sub(damage);
+        }
+
+        if fighter.hp <= 0 {
+            obj.alive = false;
+            death_callback = Some(fighter.death_callback.clone());
+        }
+
+        fighter.hp = fighter.hp.min(fighter.max_hp);
+    }
+
+    if let Some(callback) = death_callback {
+        match callback {
+            DeathCallback::Player => player_death(objects, log),
+            DeathCallback::Monster => monster_death(objects, log, id),
+        }
+    }
+}
+
+pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) {
+    let player = &mut objects.get_mut(&PLAYER).unwrap();
+    log.push(String::from("you died!"));
+
+    let renderable = &mut player.renderable;
+    renderable.glyph = '%';
+    renderable.fg = Color::Red;
+}
+
+pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>, id: usize) {
+    let monster = &mut objects.get_mut(&id).unwrap();
+    log.push(format!("{} dies!", monster.name));
+
+    let renderable = &mut monster.renderable;
+    renderable.glyph = '%';
+    renderable.fg = Color::Red;
+
+    monster.blocks_movement = false;
+    monster.alive = false;
+    monster.fighter = None;
+    monster.name = format!("remains of {}", monster.name);
+}
+
+/// effects of a potion of healing. heals the player for 4 hp
+pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) -> UseResult {
+    let fighter = match &objects.get(&PLAYER).unwrap().fighter {
+        Some(x) => x,
+        None => {
+            panic!("trying to cast heal, but target_id does not have a fighter component!")
+        }
+    };
+
+    if fighter.hp == fighter.max_hp {
+        log.push(String::from("You are already at full health."));
+        UseResult::Cancelled
+    } else {
+        heal(objects, PLAYER, 4);
+        log.push(String::from("Your wounds start to close."));
+        UseResult::UsedUp
+    }
+}
+
+/// effects of a scroll of lightning. randomly smites a target within line of sight
+pub fn cast_lightning(
+    objects: &mut HashMap<usize, Object>,
+    gamemap: &GameMap,
+    log: &mut Vec<String>,
+) -> UseResult {
+    // get all fighters within line of sight, minus the player
+    let mut valid_targets = Vec::new();
+    for id in gamemap.object_ids.iter() {
+        let pos = &objects.get(id).unwrap().pos;
+        if *id == PLAYER || !gamemap.is_visible(pos.x, pos.y) {
+            continue;
+        }
+
+        if let Some(_fighter) = &objects.get(id).unwrap().fighter {
+            valid_targets.push(*id);
+        }
+    }
+
+    if valid_targets.len() == 0 {
+        log.push(format!("No targets in sight."));
+        return UseResult::Cancelled;
+    }
+
+    let mut rng = rand::rng();
+    let target_id = valid_targets.choose(&mut rng).unwrap();
+    let fighter = match &objects.get(target_id).unwrap().fighter {
+        Some(x) => x,
+        None => {
+            panic!("trying to cast lightning, but target_id does not have a fighter component!")
+        }
+    };
+
+    const LIGHTNING_DAMAGE: i16 = 8;
+    let damage = LIGHTNING_DAMAGE - fighter.defense;
+
+    let target_obj = objects.get(target_id).unwrap();
+    let attack_desc = format!("Lightning smites the {}", target_obj.name);
+
+    if damage > 0 {
+        take_damage(objects, log, *target_id, damage as u16);
+        log.push(format!("{} for {} damage.", attack_desc, damage));
+    } else {
+        log.push(format!("{} but does no damage.", attack_desc));
+    }
+
+    UseResult::UsedUp
+}
