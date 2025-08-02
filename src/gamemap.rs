@@ -2,7 +2,7 @@ use crate::components::Renderable;
 
 use ratatui::style::Color;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Tile {
     pub walkable: bool,
     pub transparent: bool,

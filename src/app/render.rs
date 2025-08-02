@@ -10,7 +10,7 @@ use ratatui::{
 use super::{App, PLAYER};
 use crate::{
     components::{Position, RenderStatus, Renderable},
-    gamemap,
+    gamemap::{self, Tile, TileType},
 };
 
 pub enum GameScreen {
@@ -239,10 +239,19 @@ impl App {
         lines.push(format!("Things here:").into());
 
         if names.len() == 0 {
-            lines.push(format!(" - the floor.").into());
+            if !self.gamemap.is_visible(cursor.x, cursor.y) {
+                lines.push(format!("   you can't see this tile.").into());
+            } else {
+                let tile = self.gamemap.get_ref(cursor.x, cursor.y);
+                if *tile == Tile::from_type(TileType::Floor) {
+                    lines.push(format!("   the floor.").into());
+                } else if *tile == Tile::from_type(TileType::Wall) {
+                    lines.push(format!("   a wall.").into());
+                }
+            }
         } else {
             for name in names {
-                lines.push(format!(" - {}", name).into());
+                lines.push(format!("   {}", name).into());
             }
         }
 

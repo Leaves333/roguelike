@@ -12,7 +12,7 @@ impl Position {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Renderable {
     pub glyph: char,
     pub fg: Color,
