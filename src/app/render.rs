@@ -58,27 +58,27 @@ impl AsciiGauge {
         }
     }
 
-    pub fn filled_glyph(mut self, glyph: char) -> Self {
+    pub fn set_filled_glyph(mut self, glyph: char) -> Self {
         self.filled_glyph = glyph;
         self
     }
 
-    pub fn unfilled_glyph(mut self, glyph: char) -> Self {
+    pub fn set_unfilled_glyph(mut self, glyph: char) -> Self {
         self.unfilled_glyph = glyph;
         self
     }
 
-    pub fn filled_style(mut self, style: Style) -> Self {
+    pub fn set_filled_style(mut self, style: Style) -> Self {
         self.filled_style = style;
         self
     }
 
-    pub fn unfilled_style(mut self, style: Style) -> Self {
+    pub fn set_unfilled_style(mut self, style: Style) -> Self {
         self.unfilled_style = style;
         self
     }
 
-    pub fn ratio(mut self, ratio: f64) -> Self {
+    pub fn set_ratio(mut self, ratio: f64) -> Self {
         self.ratio = ratio;
         self
     }
@@ -126,14 +126,20 @@ impl App {
             ])
             .split(horizontal_split[1]);
 
-        // correct the offset before it gets passed to render fullscreen log
+        // correct game screen variables before they get rendered
+        // need to do this first because game_screen needs to be borrowed as mut
         match &mut self.game_screen {
+            // correct the offset before it gets passed to render fullscreen log
             GameScreen::Log { offset } => {
                 let display_idx = self
                     .log
                     .len()
                     .saturating_sub(horizontal_split[1].height as usize - 2);
                 *offset = (*offset).min(display_idx);
+            }
+            GameScreen::Examine { cursor } => {
+                cursor.x = cursor.x.min(world_layout[0].width - 1);
+                cursor.y = cursor.y.min(world_layout[0].height - 1);
             }
             _ => {}
         }
@@ -341,9 +347,9 @@ impl App {
         let health_label = Paragraph::new(label_text);
 
         let health_gauge = AsciiGauge::default()
-            .ratio(ratio)
-            .filled_style(Style::default().fg(Color::Green))
-            .unfilled_style(Style::default().fg(Color::Red));
+            .set_ratio(ratio)
+            .set_filled_style(Style::default().fg(Color::Green))
+            .set_unfilled_style(Style::default().fg(Color::Red));
 
         frame.render_widget(health_label, label_area);
         frame.render_widget(health_gauge, gauge_area);

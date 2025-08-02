@@ -222,18 +222,21 @@ impl App {
                 _ => {}
             },
             GameScreen::Examine { ref mut cursor } => match key.code {
+                // move cursor around
+                // do checks to keep cursor within bounds of the gamemap here
                 KeyCode::Down | KeyCode::Char('j') => {
-                    cursor.y += 1;
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
-                    cursor.y -= 1;
+                    cursor.y = cursor.y.saturating_sub(1);
                 }
                 KeyCode::Right | KeyCode::Char('l') => {
-                    cursor.x += 1;
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
                 }
                 KeyCode::Left | KeyCode::Char('h') => {
-                    cursor.x -= 1;
+                    cursor.x = cursor.x.saturating_sub(1);
                 }
+
                 // exit examine mode
                 KeyCode::Char('x') => {
                     self.toggle_examine_mode();
