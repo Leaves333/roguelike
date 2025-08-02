@@ -4,7 +4,7 @@ use ratatui::{
     layout,
     style::{Color, Style},
     text::Line,
-    widgets::{Block, Borders, Paragraph, Widget},
+    widgets::{Block, Borders, Clear, Paragraph, Widget},
 };
 
 use super::{App, PLAYER};
@@ -233,10 +233,10 @@ impl App {
         lines.push(format!("Things here:").into());
 
         if names.len() == 0 {
-            lines.push(format!("\tThe floor.").into());
+            lines.push(format!(" - the floor.").into());
         } else {
             for name in names {
-                lines.push(format!("\t{}", name).into());
+                lines.push(format!(" - {}", name).into());
             }
         }
 

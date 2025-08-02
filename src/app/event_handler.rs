@@ -104,11 +104,15 @@ impl App {
                     self.toggle_fullscreen_log();
                     return PlayerAction::DidntTakeTurn;
                 }
+                KeyCode::Esc | KeyCode::Char('q') => {
+                    return PlayerAction::Exit;
+                }
                 _ => {}
             },
             _ => match key.code {
                 KeyCode::Esc => {
-                    return PlayerAction::Exit;
+                    self.switch_to_main_screen();
+                    return PlayerAction::DidntTakeTurn;
                 }
                 _ => {}
             },
@@ -260,6 +264,10 @@ impl App {
                 }
             }
         }
+    }
+
+    fn switch_to_main_screen(&mut self) {
+        self.game_screen = GameScreen::Main;
     }
 
     /// makes all the monsters take a turn
