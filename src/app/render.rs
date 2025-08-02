@@ -138,8 +138,8 @@ impl App {
                 *offset = (*offset).min(display_idx);
             }
             GameScreen::Examine { cursor } => {
-                cursor.x = cursor.x.min(world_layout[0].width - 1);
-                cursor.y = cursor.y.min(world_layout[0].height - 1);
+                cursor.x = cursor.x.min(world_layout[0].width - 3);
+                cursor.y = cursor.y.min(world_layout[0].height - 3);
             }
             _ => {}
         }
