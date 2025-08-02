@@ -236,6 +236,22 @@ impl App {
                 KeyCode::Left | KeyCode::Char('h') => {
                     cursor.x = cursor.x.saturating_sub(1);
                 }
+                KeyCode::Char('u') => {
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('y') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('n') => {
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
+                }
+                KeyCode::Char('b') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
+                }
 
                 // exit examine mode
                 KeyCode::Char('x') => {
