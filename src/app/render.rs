@@ -7,27 +7,12 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use super::{App, PLAYER};
+use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, RenderStatus, Renderable},
     engine::TargetingMode,
     gamemap::{self, Tile, TileType},
 };
-
-pub enum GameScreen {
-    Main,
-    Log {
-        offset: usize,
-    },
-    Examine {
-        cursor: Position,
-    },
-    Targeting {
-        cursor: Position,
-        targeting: TargetingMode,
-        text: String,
-    },
-}
 
 #[derive(Clone)]
 pub struct CharWidget {
@@ -179,6 +164,7 @@ impl App {
                 ref cursor,
                 ref targeting,
                 ref text,
+                ref item,
             } => {
                 self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);

@@ -109,6 +109,8 @@ pub enum DeathCallback {
     Monster,
 }
 
+/// represents information about an item.
+/// should not store persistent data, as this will get cloned
 #[derive(Clone)]
 pub enum Item {
     Heal,

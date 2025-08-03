@@ -6,13 +6,12 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 
 use crate::components::{AIType, Item, RenderStatus};
-use crate::engine::{UseResult, cast_heal, cast_lightning, take_damage};
+use crate::engine::{Usable, UseResult, cast_heal, cast_lightning, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
 
-use super::render::GameScreen;
-use super::{App, PLAYER};
+use super::{App, GameScreen, PLAYER};
 
 enum InputDirection {
     Up,
@@ -190,6 +189,14 @@ impl App {
                         };
 
                         if self.inventory.len() > index {
+                            let item = self.get_item_in_inventory(index);
+
+                            if item.needs_targeting() {
+                                // item needs targeting code
+                            } else {
+                                // item can be used directly
+                            }
+
                             let use_result = self.use_item(index);
                             return match use_result {
                                 UseResult::UsedUp => PlayerAction::TookTurn,
@@ -516,22 +523,23 @@ impl App {
         }
     }
 
-    /// uses an item from the specified index in the inventory
-    fn use_item(&mut self, inventory_idx: usize) -> UseResult {
+    /// returns the item object for a given index in the inventory
+    fn get_item_in_inventory(&self, inventory_idx: usize) -> &Item {
         let item_id = self.inventory[inventory_idx];
-        let item = match &self.objects.get(&item_id).unwrap().item {
+        match &self.objects.get(&item_id).unwrap().item {
             Some(x) => x,
             None => {
                 panic!("use_item called with an object without an item component!")
             }
-        };
+        }
+    }
 
-        let on_use = match item {
-            Item::Heal => cast_heal(&mut self.objects, &mut self.log),
-            Item::Lightning => cast_lightning(&mut self.objects, &self.gamemap, &mut self.log),
-        };
+    /// uses an item from the specified index in the inventory
+    fn use_item(&mut self, inventory_idx: usize) -> UseResult {
+        let item = self.get_item_in_inventory(inventory_idx).clone();
+        let use_result = item.on_use(self);
 
-        match on_use {
+        match use_result {
             UseResult::UsedUp => {
                 // delete item after being used
                 self.inventory.remove(inventory_idx);
@@ -541,6 +549,6 @@ impl App {
             }
         };
 
-        on_use
+        use_result
     }
 }

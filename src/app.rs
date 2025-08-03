@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use render::GameScreen;
-
 use crate::{
-    components::Object,
+    components::{Item, Object, Position},
+    engine::TargetingMode,
     entities::{self, spawn},
     gamemap::GameMap,
 };
@@ -15,12 +14,28 @@ mod render;
 pub const PLAYER: usize = 0;
 
 pub struct App {
-    gamemap: GameMap,
-    game_screen: GameScreen,
-    objects: HashMap<usize, Object>,
-    next_id: usize,
-    inventory: Vec<usize>,
-    log: Vec<String>,
+    pub gamemap: GameMap,
+    pub game_screen: GameScreen,
+    pub objects: HashMap<usize, Object>,
+    pub next_id: usize,
+    pub inventory: Vec<usize>,
+    pub log: Vec<String>,
+}
+
+pub enum GameScreen {
+    Main,
+    Log {
+        offset: usize,
+    },
+    Examine {
+        cursor: Position,
+    },
+    Targeting {
+        cursor: Position,
+        targeting: TargetingMode,
+        text: String,
+        item: Item,
+    },
 }
 
 impl App {

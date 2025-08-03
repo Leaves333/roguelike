@@ -4,8 +4,8 @@ use rand::seq::IndexedRandom;
 use ratatui::style::Color;
 
 use crate::{
-    app::PLAYER,
-    components::{DeathCallback, Object},
+    app::{App, GameScreen, PLAYER},
+    components::{DeathCallback, Item, Object},
     gamemap::GameMap,
 };
 
@@ -85,8 +85,59 @@ pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>
 }
 
 pub trait Usable {
-    // pub fn on targeting?
-    // pub fn on use?
+    fn on_targeting(&self, app: &mut App);
+    fn on_use(&self, app: &mut App) -> UseResult;
+}
+
+impl Item {
+    pub fn needs_targeting(&self) -> bool {
+        match self {
+            Item::Lightning => true,
+            _ => false,
+        }
+    }
+}
+
+impl Usable for Item {
+    /// switches the game screen to the appropriate targeting mode for the item
+    fn on_targeting(&self, app: &mut App) {
+        // NOTE: need to check if item is targetable before calling this function!
+        if self.needs_targeting() {
+            unreachable!()
+        }
+
+        let targeting_text = match self {
+            Item::Lightning => String::from("Aim the bolt of lightning at what?"),
+            _ => {
+                unreachable!()
+            }
+        };
+
+        let targeting_mode = match self {
+            Item::Lightning => TargetingMode::SmiteEnemy,
+            _ => {
+                unreachable!()
+            }
+        };
+
+        // all other cases, targeting is required
+        let targeting = GameScreen::Targeting {
+            cursor: app.objects.get(&PLAYER).unwrap().pos,
+            targeting: targeting_mode,
+            text: targeting_text,
+            item: self.clone(),
+        };
+
+        app.game_screen = targeting;
+    }
+
+    /// callback to be used when the item is consumed
+    fn on_use(&self, app: &mut App) -> UseResult {
+        match self {
+            Item::Heal => cast_heal(&mut app.objects, &mut app.log),
+            Item::Lightning => cast_lightning(&mut app.objects, &app.gamemap, &mut app.log),
+        }
+    }
 }
 
 /// effects of a potion of healing. heals the player for 4 hp
