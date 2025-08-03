@@ -5,7 +5,7 @@ use ratatui::style::Color;
 
 use crate::{
     app::{App, GameScreen, PLAYER},
-    components::{DeathCallback, Item, Object},
+    components::{DeathCallback, Item, Object, Position},
     gamemap::GameMap,
 };
 
@@ -20,6 +20,20 @@ pub enum UseResult {
 /// different targeting modes for targeted abilities
 pub enum TargetingMode {
     SmiteEnemy, // smite target any enemy in line of sight
+}
+
+pub fn get_blocking_object_id(
+    objects: &HashMap<usize, Object>,
+    gamemap: &GameMap,
+    pos: Position,
+) -> Option<usize> {
+    for id in gamemap.object_ids.iter() {
+        let obj = &objects.get(id).unwrap();
+        if obj.blocks_movement && obj.pos.x == pos.x && obj.pos.y == pos.y {
+            return Some(id.clone());
+        }
+    }
+    return None;
 }
 
 /// heals an entity for the specified amount
@@ -84,11 +98,6 @@ pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>
     monster.name = format!("remains of {}", monster.name);
 }
 
-pub trait Usable {
-    fn on_targeting(&self, app: &mut App);
-    fn on_use(&self, app: &mut App) -> UseResult;
-}
-
 impl Item {
     pub fn needs_targeting(&self) -> bool {
         match self {
@@ -96,13 +105,10 @@ impl Item {
             _ => false,
         }
     }
-}
-
-impl Usable for Item {
     /// switches the game screen to the appropriate targeting mode for the item
-    fn on_targeting(&self, app: &mut App) {
+    pub fn on_targeting(&self, app: &mut App, inventory_idx: usize) {
         // NOTE: need to check if item is targetable before calling this function!
-        if self.needs_targeting() {
+        if !self.needs_targeting() {
             unreachable!()
         }
 
@@ -125,17 +131,26 @@ impl Usable for Item {
             cursor: app.objects.get(&PLAYER).unwrap().pos,
             targeting: targeting_mode,
             text: targeting_text,
-            item: self.clone(),
+            inventory_idx,
         };
 
         app.game_screen = targeting;
     }
 
     /// callback to be used when the item is consumed
-    fn on_use(&self, app: &mut App) -> UseResult {
+    pub fn on_use(&self, app: &mut App, target: Option<Position>) -> UseResult {
+        if self.needs_targeting() && target.is_none() {
+            panic!()
+        }
+
         match self {
             Item::Heal => cast_heal(&mut app.objects, &mut app.log),
-            Item::Lightning => cast_lightning(&mut app.objects, &app.gamemap, &mut app.log),
+            Item::Lightning => cast_lightning(
+                &mut app.objects,
+                &app.gamemap,
+                &mut app.log,
+                target.unwrap(),
+            ),
         }
     }
 }
@@ -159,33 +174,37 @@ pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) ->
     }
 }
 
-/// effects of a scroll of lightning. randomly smites a target within line of sight
+/// effects of a scroll of lightning. smites a chosen target within line of sight
 pub fn cast_lightning(
     objects: &mut HashMap<usize, Object>,
     gamemap: &GameMap,
     log: &mut Vec<String>,
+    target: Position,
 ) -> UseResult {
     // get all fighters within line of sight, minus the player
-    let mut valid_targets = Vec::new();
-    for id in gamemap.object_ids.iter() {
-        let pos = &objects.get(id).unwrap().pos;
-        if *id == PLAYER || !gamemap.is_visible(pos.x, pos.y) {
-            continue;
-        }
 
-        if let Some(_fighter) = &objects.get(id).unwrap().fighter {
-            valid_targets.push(*id);
-        }
-    }
+    // let mut valid_targets = Vec::new();
+    // for id in gamemap.object_ids.iter() {
+    //     let pos = &objects.get(id).unwrap().pos;
+    //     if *id == PLAYER || !gamemap.is_visible(pos.x, pos.y) {
+    //         continue;
+    //     }
+    //
+    //     if let Some(_fighter) = &objects.get(id).unwrap().fighter {
+    //         valid_targets.push(*id);
+    //     }
+    // }
+    //
+    // if valid_targets.len() == 0 {
+    //     log.push(format!("No targets in sight."));
+    //     return UseResult::Cancelled;
+    // }
 
-    if valid_targets.len() == 0 {
-        log.push(format!("No targets in sight."));
-        return UseResult::Cancelled;
-    }
+    // let mut rng = rand::rng();
+    // let target_id = valid_targets.choose(&mut rng).unwrap();
 
-    let mut rng = rand::rng();
-    let target_id = valid_targets.choose(&mut rng).unwrap();
-    let fighter = match &objects.get(target_id).unwrap().fighter {
+    let target_id = get_blocking_object_id(objects, gamemap, target).unwrap();
+    let fighter = match &objects.get(&target_id).unwrap().fighter {
         Some(x) => x,
         None => {
             panic!("trying to cast lightning, but target_id does not have a fighter component!")
@@ -195,11 +214,11 @@ pub fn cast_lightning(
     const LIGHTNING_DAMAGE: i16 = 8;
     let damage = LIGHTNING_DAMAGE - fighter.defense;
 
-    let target_obj = objects.get(target_id).unwrap();
+    let target_obj = objects.get(&target_id).unwrap();
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
 
     if damage > 0 {
-        take_damage(objects, log, *target_id, damage as u16);
+        take_damage(objects, log, target_id, damage as u16);
         log.push(format!("{} for {} damage.", attack_desc, damage));
     } else {
         log.push(format!("{} but does no damage.", attack_desc));

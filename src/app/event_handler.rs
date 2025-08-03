@@ -5,8 +5,8 @@ use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 
-use crate::components::{AIType, Item, RenderStatus};
-use crate::engine::{Usable, UseResult, cast_heal, cast_lightning, take_damage};
+use crate::components::{AIType, Item, Position, RenderStatus};
+use crate::engine::{UseResult, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
@@ -189,19 +189,20 @@ impl App {
                         };
 
                         if self.inventory.len() > index {
-                            let item = self.get_item_in_inventory(index);
+                            let item = self.get_item_in_inventory(index).clone();
 
                             if item.needs_targeting() {
-                                // item needs targeting code
+                                // item needs targeting, switch to targeting mode
+                                item.on_targeting(self, index);
+                                return PlayerAction::DidntTakeTurn;
                             } else {
                                 // item can be used directly
+                                let use_result = self.use_item(index, None);
+                                return match use_result {
+                                    UseResult::UsedUp => PlayerAction::TookTurn,
+                                    UseResult::Cancelled => PlayerAction::DidntTakeTurn,
+                                };
                             }
-
-                            let use_result = self.use_item(index);
-                            return match use_result {
-                                UseResult::UsedUp => PlayerAction::TookTurn,
-                                UseResult::Cancelled => PlayerAction::DidntTakeTurn,
-                            };
                         }
                     }
 
@@ -253,6 +254,25 @@ impl App {
                 KeyCode::Char('x') => {
                     self.toggle_examine_mode();
                     return PlayerAction::DidntTakeTurn;
+                }
+                _ => {}
+            },
+            GameScreen::Targeting {
+                ref cursor,
+                inventory_idx,
+                ..
+            } => match key.code {
+                KeyCode::Enter => {
+                    // select target at cursor
+
+                    // use the item and exit targeting mode
+                    let use_result = self.use_item(inventory_idx, Some(cursor.clone()));
+                    self.game_screen = GameScreen::Main;
+
+                    return match use_result {
+                        UseResult::UsedUp => PlayerAction::TookTurn,
+                        UseResult::Cancelled => PlayerAction::DidntTakeTurn,
+                    };
                 }
                 _ => {}
             },
@@ -350,13 +370,9 @@ impl App {
 
         let path = pathfinder.path_to((player.pos.x, player.pos.y));
         if path.len() == 0 {
-            // self.log
-            //     .push(format!("{} just sits and waits.", monster.name));
         } else if path.len() == 1 {
             self.melee_action(id, *path.first().unwrap());
         } else {
-            // self.log
-            //     .push(format!("{} moves towards the player!", monster.name));
             self.move_action(id, *path.first().unwrap());
         }
     }
@@ -535,9 +551,9 @@ impl App {
     }
 
     /// uses an item from the specified index in the inventory
-    fn use_item(&mut self, inventory_idx: usize) -> UseResult {
+    fn use_item(&mut self, inventory_idx: usize, target: Option<Position>) -> UseResult {
         let item = self.get_item_in_inventory(inventory_idx).clone();
-        let use_result = item.on_use(self);
+        let use_result = item.on_use(self, target);
 
         match use_result {
             UseResult::UsedUp => {

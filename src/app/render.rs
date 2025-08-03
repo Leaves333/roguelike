@@ -164,7 +164,7 @@ impl App {
                 ref cursor,
                 ref targeting,
                 ref text,
-                ref item,
+                ref inventory_idx,
             } => {
                 self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);

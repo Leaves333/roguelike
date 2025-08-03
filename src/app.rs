@@ -34,7 +34,7 @@ pub enum GameScreen {
         cursor: Position,
         targeting: TargetingMode,
         text: String,
-        item: Item,
+        inventory_idx: usize,
     },
 }
 
