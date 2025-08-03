@@ -183,8 +183,9 @@ impl App {
                 self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);
 
+                // TODO: render targeting line of fire overlay to world map
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
-                self.render_examine_info(frame, world_layout[1], &cursor);
+                self.render_targeting_info(frame, world_layout[1], &cursor, text);
             }
         }
     }
@@ -243,7 +244,7 @@ impl App {
         }
     }
 
-    /// displays information about the examined item
+    /// displays information about items under the examine cursor
     fn render_examine_info(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
         let lines: Vec<Line> = self
             .get_objects_at_cursor(cursor)
@@ -252,6 +253,26 @@ impl App {
             .collect();
         let paragraph =
             Paragraph::new(lines).block(Block::default().title("examine").borders(Borders::ALL));
+        frame.render_widget(paragraph, area);
+    }
+
+    /// displays the targeting info box.
+    /// works like render_examine_info, but with an extra line about what you are targeting
+    fn render_targeting_info(
+        &self,
+        frame: &mut Frame,
+        area: layout::Rect,
+        cursor: &Position,
+        text: &str,
+    ) {
+        let mut lines = vec![Line::from(text)];
+        lines.extend(
+            self.get_objects_at_cursor(cursor)
+                .into_iter()
+                .map(|x| Line::from(x)),
+        );
+        let paragraph =
+            Paragraph::new(lines).block(Block::default().title("targeting").borders(Borders::ALL));
         frame.render_widget(paragraph, area);
     }
 

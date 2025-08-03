@@ -84,6 +84,11 @@ pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>
     monster.name = format!("remains of {}", monster.name);
 }
 
+pub trait Usable {
+    // pub fn on targeting?
+    // pub fn on use?
+}
+
 /// effects of a potion of healing. heals the player for 4 hp
 pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) -> UseResult {
     let fighter = match &objects.get(&PLAYER).unwrap().fighter {
