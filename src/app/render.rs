@@ -10,13 +10,23 @@ use ratatui::{
 use super::{App, PLAYER};
 use crate::{
     components::{Position, RenderStatus, Renderable},
+    engine::TargetingMode,
     gamemap::{self, Tile, TileType},
 };
 
 pub enum GameScreen {
     Main,
-    Log { offset: usize },
-    Examine { cursor: Position },
+    Log {
+        offset: usize,
+    },
+    Examine {
+        cursor: Position,
+    },
+    Targeting {
+        cursor: Position,
+        targeting: TargetingMode,
+        text: String,
+    },
 }
 
 #[derive(Clone)]
@@ -129,49 +139,58 @@ impl App {
         // correct game screen variables before they get rendered
         // need to do this first because game_screen needs to be borrowed as mut
         match &mut self.game_screen {
-            // correct the offset before it gets passed to render fullscreen log
             GameScreen::Log { offset } => {
+                // correct the offset before it gets passed to render fullscreen log
                 let display_idx = self
                     .log
                     .len()
                     .saturating_sub(horizontal_split[1].height as usize - 2);
                 *offset = (*offset).min(display_idx);
             }
-            GameScreen::Examine { cursor } => {
+            GameScreen::Examine { cursor } | GameScreen::Targeting { cursor, .. } => {
+                // keep the cursor within bounds of the renderable area
                 cursor.x = cursor.x.min(world_layout[0].width - 3);
                 cursor.y = cursor.y.min(world_layout[0].height - 3);
             }
             _ => {}
         }
 
+        // left side status + inventory is rendered on all game screens
+        self.render_status(frame, ui_layout[0]);
+        self.render_inventory(frame, ui_layout[1]);
+
         match self.game_screen {
             GameScreen::Main => {
-                self.render_map(frame, world_layout[0]);
+                self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);
                 self.render_log(frame, world_layout[1]);
-
-                self.render_status(frame, ui_layout[0]);
-                self.render_inventory(frame, ui_layout[1]);
             }
             GameScreen::Log { offset } => {
                 self.render_fullscreen_log(frame, horizontal_split[1], offset);
-                self.render_status(frame, ui_layout[0]);
-                self.render_inventory(frame, ui_layout[1]);
             }
-            GameScreen::Examine { cursor } => {
-                self.render_map(frame, world_layout[0]);
+            GameScreen::Examine { ref cursor } => {
+                self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);
+
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
                 self.render_examine_info(frame, world_layout[1], &cursor);
+            }
+            GameScreen::Targeting {
+                ref cursor,
+                ref targeting,
+                ref text,
+            } => {
+                self.render_tiles(frame, world_layout[0]);
+                self.render_entities(frame, world_layout[0]);
 
-                self.render_status(frame, ui_layout[0]);
-                self.render_inventory(frame, ui_layout[1]);
+                self.render_examine_cursor(frame, world_layout[0], &cursor);
+                self.render_examine_info(frame, world_layout[1], &cursor);
             }
         }
     }
 
     /// render tiles in gamemap
-    fn render_map(&self, frame: &mut Frame, area: layout::Rect) {
+    fn render_tiles(&self, frame: &mut Frame, area: layout::Rect) {
         let inner_area = area.inner(layout::Margin {
             horizontal: 1,
             vertical: 1,
@@ -226,7 +245,19 @@ impl App {
 
     /// displays information about the examined item
     fn render_examine_info(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
-        // find all the objects located at the cursor
+        let lines: Vec<Line> = self
+            .get_objects_at_cursor(cursor)
+            .into_iter()
+            .map(|x| Line::from(x))
+            .collect();
+        let paragraph =
+            Paragraph::new(lines).block(Block::default().title("examine").borders(Borders::ALL));
+        frame.render_widget(paragraph, area);
+    }
+
+    /// returns a vec containing the names of objects at the cursor
+    /// to be used with render_examine() and render_targeting()
+    fn get_objects_at_cursor(&self, cursor: &Position) -> Vec<String> {
         let mut names = Vec::new();
         for id in self.gamemap.object_ids.iter() {
             let obj = self.objects.get(id).unwrap();
@@ -235,29 +266,27 @@ impl App {
             }
         }
 
-        let mut lines: Vec<Line> = Vec::new();
-        lines.push(format!("Things here:").into());
+        let mut formatted: Vec<String> = Vec::new();
+        formatted.push(format!("Things here:").into());
 
         if names.len() == 0 {
             if !self.gamemap.is_visible(cursor.x, cursor.y) {
-                lines.push(format!("   you can't see this tile.").into());
+                formatted.push(format!("   you can't see this tile.").into());
             } else {
                 let tile = self.gamemap.get_ref(cursor.x, cursor.y);
                 if *tile == Tile::from_type(TileType::Floor) {
-                    lines.push(format!("   the floor.").into());
+                    formatted.push(format!("   the floor.").into());
                 } else if *tile == Tile::from_type(TileType::Wall) {
-                    lines.push(format!("   a wall.").into());
+                    formatted.push(format!("   a wall.").into());
                 }
             }
         } else {
             for name in names {
-                lines.push(format!("   {}", name).into());
+                formatted.push(format!("   {}", name).into());
             }
         }
 
-        let paragraph =
-            Paragraph::new(lines).block(Block::default().title("examine").borders(Borders::ALL));
-        frame.render_widget(paragraph, area);
+        formatted
     }
 
     /// render all objects in the gamemap to screen

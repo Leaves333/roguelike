@@ -45,20 +45,6 @@ enum PlayerAction {
     Exit,
 }
 
-/// mutably borrow two *separate* elements from the given slice.
-/// panics when the indexes are equal or out of bounds.
-/// code from [https://tomassedovic.github.io/roguelike-tutorial/part-6-going-berserk.html]
-fn mut_two<T>(first_index: usize, second_index: usize, items: &mut [T]) -> (&mut T, &mut T) {
-    assert!(first_index != second_index);
-    let split_at_index = std::cmp::max(first_index, second_index);
-    let (first_slice, second_slice) = items.split_at_mut(split_at_index);
-    if first_index < second_index {
-        (&mut first_slice[first_index], &mut second_slice[0])
-    } else {
-        (&mut second_slice[0], &mut first_slice[second_index])
-    }
-}
-
 impl App {
     pub fn run(&mut self, mut terminal: DefaultTerminal) -> Result<()> {
         loop {
@@ -111,49 +97,91 @@ impl App {
             },
         };
 
+        // movement related controls
+        match self.game_screen {
+            GameScreen::Main => match key.code {
+                // movement keys during the main screen
+                KeyCode::Right | KeyCode::Char('l') => {
+                    self.bump_action(PLAYER, InputDirection::Right);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Left | KeyCode::Char('h') => {
+                    self.bump_action(PLAYER, InputDirection::Left);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.bump_action(PLAYER, InputDirection::Down);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.bump_action(PLAYER, InputDirection::Up);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Char('u') => {
+                    self.bump_action(PLAYER, InputDirection::UpRight);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Char('y') => {
+                    self.bump_action(PLAYER, InputDirection::UpLeft);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Char('n') => {
+                    self.bump_action(PLAYER, InputDirection::DownRight);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Char('b') => {
+                    self.bump_action(PLAYER, InputDirection::DownLeft);
+                    return PlayerAction::TookTurn;
+                }
+                KeyCode::Char('.') => {
+                    // wait action, nothing is done
+                    return PlayerAction::TookTurn;
+                }
+                _ => {}
+            },
+            GameScreen::Examine { ref mut cursor }
+            | GameScreen::Targeting { ref mut cursor, .. } => match key.code {
+                // move cursor around during examine and targeting modes
+                // do checks to keep cursor within bounds of the gamemap here
+                KeyCode::Down | KeyCode::Char('j') => {
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Right | KeyCode::Char('l') => {
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
+                }
+                KeyCode::Left | KeyCode::Char('h') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                }
+
+                KeyCode::Char('u') => {
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('y') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('n') => {
+                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
+                }
+                KeyCode::Char('b') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
+                }
+                _ => {}
+            },
+            _ => {}
+        };
+
         // keybinds specific to certain gamescreens
         match self.game_screen {
             GameScreen::Main => {
                 match key.code {
-                    // movement keys
-                    KeyCode::Right | KeyCode::Char('l') => {
-                        self.bump_action(PLAYER, InputDirection::Right);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Left | KeyCode::Char('h') => {
-                        self.bump_action(PLAYER, InputDirection::Left);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        self.bump_action(PLAYER, InputDirection::Down);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        self.bump_action(PLAYER, InputDirection::Up);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Char('u') => {
-                        self.bump_action(PLAYER, InputDirection::UpRight);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Char('y') => {
-                        self.bump_action(PLAYER, InputDirection::UpLeft);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Char('n') => {
-                        self.bump_action(PLAYER, InputDirection::DownRight);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Char('b') => {
-                        self.bump_action(PLAYER, InputDirection::DownLeft);
-                        return PlayerAction::TookTurn;
-                    }
-                    KeyCode::Char('.') => {
-                        // wait action, nothing is done
-                        return PlayerAction::TookTurn;
-                    }
-
-                    // inventory keys: '1' to '9' and '0'
+                    // use item from invetory: '1' to '9' and '0'
                     KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
                         let index = match c {
                             '1'..='9' => c as usize - '1' as usize,
@@ -170,15 +198,14 @@ impl App {
                         }
                     }
 
-                    // can only go to examine mode on main game screen
+                    // can only go to examine mode from main game screen
                     KeyCode::Char('x') => {
                         self.toggle_examine_mode();
                         return PlayerAction::DidntTakeTurn;
                     }
 
-                    // actual controls lol
+                    // pick up the first item at location
                     KeyCode::Char('g') => {
-                        // pick up the first item at location
                         let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
                         let id = self.gamemap.object_ids.iter().find(|x| {
                             let obj = &self.objects.get(x).unwrap();
@@ -214,39 +241,7 @@ impl App {
                 }
                 _ => {}
             },
-            GameScreen::Examine { ref mut cursor } => match key.code {
-                // move cursor around
-                // do checks to keep cursor within bounds of the gamemap here
-                KeyCode::Down | KeyCode::Char('j') => {
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Right | KeyCode::Char('l') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                }
-                KeyCode::Left | KeyCode::Char('h') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                }
-
-                KeyCode::Char('u') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Char('y') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Char('n') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-                KeyCode::Char('b') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-
+            GameScreen::Examine { .. } => match key.code {
                 // exit examine mode
                 KeyCode::Char('x') => {
                     self.toggle_examine_mode();
@@ -254,9 +249,10 @@ impl App {
                 }
                 _ => {}
             },
+            _ => {}
         };
 
-        // if no existing keybinds were matched
+        // if no keybinds were matched
         return PlayerAction::DidntTakeTurn;
     }
 

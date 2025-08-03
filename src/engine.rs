@@ -17,6 +17,11 @@ pub enum UseResult {
     Cancelled,
 }
 
+/// different targeting modes for targeted abilities
+pub enum TargetingMode {
+    SmiteEnemy, // smite target any enemy in line of sight
+}
+
 /// heals an entity for the specified amount
 pub fn heal(objects: &mut HashMap<usize, Object>, id: usize, heal_amount: u16) {
     let obj = objects.get_mut(&id).unwrap();
