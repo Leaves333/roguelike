@@ -1,8 +1,9 @@
+use rand::seq::IndexedRandom;
 use ratatui::{
     Frame,
     buffer::Buffer,
-    layout,
-    style::{Color, Style},
+    layout::{self, Constraint, Direction, Flex, Layout, Margin, Rect},
+    style::{Color, Style, Styled, Stylize},
     text::Line,
     widgets::{Block, Borders, Paragraph, Widget},
 };
@@ -42,6 +43,7 @@ pub struct AsciiGauge {
     unfilled_style: Style,
 }
 
+#[allow(dead_code)]
 impl AsciiGauge {
     pub fn default() -> Self {
         Self {
@@ -95,6 +97,15 @@ impl Widget for AsciiGauge {
     }
 }
 
+/// creates a Rect that is centered in area based on the horizontal and vertical constraints
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
+}
+
 impl App {
     pub fn render(&mut self, frame: &mut Frame) {
         let horizontal_split = layout::Layout::default()
@@ -140,11 +151,19 @@ impl App {
             _ => {}
         }
 
-        // left side status + inventory is rendered on all game screens
-        self.render_status(frame, ui_layout[0]);
-        self.render_inventory(frame, ui_layout[1]);
+        // left side status + inventory is rendered on all game screens except the main menu
+        match self.game_screen {
+            GameScreen::Menu => {}
+            _ => {
+                self.render_status(frame, ui_layout[0]);
+                self.render_inventory(frame, ui_layout[1]);
+            }
+        }
 
         match self.game_screen {
+            GameScreen::Menu => {
+                self.render_main_menu(frame, frame.area());
+            }
             GameScreen::Main => {
                 self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);
@@ -162,9 +181,8 @@ impl App {
             }
             GameScreen::Targeting {
                 ref cursor,
-                ref targeting,
                 ref text,
-                ref inventory_idx,
+                ..
             } => {
                 self.render_tiles(frame, world_layout[0]);
                 self.render_entities(frame, world_layout[0]);
@@ -174,6 +192,46 @@ impl App {
                 self.render_targeting_info(frame, world_layout[1], &cursor, text);
             }
         }
+    }
+
+    fn render_main_menu(&self, frame: &mut Frame, area: layout::Rect) {
+        // render border in middle of screen
+        let inner = center(area, Constraint::Percentage(50), Constraint::Percentage(50));
+        let block = Block::default().title("menu").borders(Borders::ALL);
+        frame.render_widget(block, inner);
+
+        let inner = area.inner(Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+
+        let title_lines: Vec<Line> = vec![
+            Line::from("epic cool game title :DDD").set_style(Style::new().bold()),
+            Line::from("by epic cool guy"),
+        ];
+        let instruction_lines: Vec<Line> = vec![
+            Line::from("(n) New Game"),
+            Line::from("(l) Load Game"),
+            Line::from("(q) Quit"),
+        ];
+
+        let [title_area, _, instruction_area] = Layout::vertical([
+            Constraint::Length(title_lines.len() as u16),
+            Constraint::Length(3), // magic number for padding between the two areas
+            Constraint::Length(instruction_lines.len() as u16),
+        ])
+        .flex(Flex::Center)
+        .areas(inner);
+
+        // magic number for the length of the instruction text
+        let [instruction_area] = Layout::horizontal([Constraint::Length(15)])
+            .flex(Flex::Center)
+            .areas(instruction_area);
+
+        let title_paragraph = Paragraph::new(title_lines).centered();
+        let instruction_paragraph = Paragraph::new(instruction_lines);
+        frame.render_widget(title_paragraph, title_area);
+        frame.render_widget(instruction_paragraph, instruction_area);
     }
 
     /// render tiles in gamemap
@@ -203,9 +261,9 @@ impl App {
     }
 
     /// render the cursor in the map after rendering everything else
-    fn render_examine_cursor(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
+    fn render_examine_cursor(&self, frame: &mut Frame, area: Rect, cursor: &Position) {
         // use inner_area because render_map() also renders to this
-        let inner_area = area.inner(layout::Margin {
+        let inner_area = area.inner(Margin {
             horizontal: 1,
             vertical: 1,
         });
@@ -231,7 +289,7 @@ impl App {
     }
 
     /// displays information about items under the examine cursor
-    fn render_examine_info(&self, frame: &mut Frame, area: layout::Rect, cursor: &Position) {
+    fn render_examine_info(&self, frame: &mut Frame, area: Rect, cursor: &Position) {
         let lines: Vec<Line> = self
             .get_objects_at_cursor(cursor)
             .into_iter()
@@ -244,13 +302,7 @@ impl App {
 
     /// displays the targeting info box.
     /// works like render_examine_info, but with an extra line about what you are targeting
-    fn render_targeting_info(
-        &self,
-        frame: &mut Frame,
-        area: layout::Rect,
-        cursor: &Position,
-        text: &str,
-    ) {
+    fn render_targeting_info(&self, frame: &mut Frame, area: Rect, cursor: &Position, text: &str) {
         let mut lines = vec![Line::from(text)];
         lines.extend(
             self.get_objects_at_cursor(cursor)
@@ -297,10 +349,10 @@ impl App {
     }
 
     /// render all objects in the gamemap to screen
-    fn render_entities(&self, frame: &mut Frame, area: layout::Rect) {
+    fn render_entities(&self, frame: &mut Frame, area: Rect) {
         let block = Block::default().title("world").borders(Borders::ALL);
         frame.render_widget(block, area);
-        let inner_area = area.inner(layout::Margin {
+        let inner_area = area.inner(Margin {
             horizontal: 1,
             vertical: 1,
         });
@@ -340,7 +392,7 @@ impl App {
     }
 
     /// renders the text in the log
-    fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
+    fn render_log(&self, frame: &mut Frame, area: Rect) {
         let mut lines: Vec<Line> = self
             .log
             .iter()
@@ -356,7 +408,7 @@ impl App {
 
     /// renders log text with offset to the fullscreen log viewer
     /// returns the given offset clamped to be in bounds
-    fn render_fullscreen_log(&self, frame: &mut Frame, area: layout::Rect, offset: usize) {
+    fn render_fullscreen_log(&self, frame: &mut Frame, area: Rect, offset: usize) {
         let mut lines: Vec<Line> = self
             .log
             .iter()
@@ -376,17 +428,14 @@ impl App {
     }
 
     /// renders healthbar on the left side of the screen
-    fn render_status(&self, frame: &mut Frame, area: layout::Rect) {
+    fn render_status(&self, frame: &mut Frame, area: Rect) {
         let block = Block::default().title("character").borders(Borders::ALL);
         frame.render_widget(block, area);
 
-        let inner_area = area.inner(layout::Margin::new(1, 1));
-        let layout = layout::Layout::default()
-            .direction(layout::Direction::Horizontal)
-            .constraints(vec![
-                layout::Constraint::Length(12),
-                layout::Constraint::Percentage(100),
-            ])
+        let inner_area = area.inner(Margin::new(1, 1));
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Length(12), Constraint::Percentage(100)])
             .split(inner_area);
 
         let label_area = layout[0];
@@ -408,7 +457,7 @@ impl App {
         frame.render_widget(health_gauge, gauge_area);
     }
 
-    fn render_inventory(&self, frame: &mut Frame, area: layout::Rect) {
+    fn render_inventory(&self, frame: &mut Frame, area: Rect) {
         let block = Block::default().title("inventory").borders(Borders::ALL);
         frame.render_widget(block, area);
 
@@ -428,7 +477,7 @@ impl App {
         }
 
         let paragraph = Paragraph::new(lines);
-        let inner_area = area.inner(layout::Margin {
+        let inner_area = area.inner(Margin {
             horizontal: 1,
             vertical: 1,
         });

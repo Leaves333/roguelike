@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 
 use crate::{
-    components::{Item, Object, Position},
+    components::{Object, Position},
     engine::TargetingMode,
     entities::{self, spawn},
     gamemap::GameMap,
@@ -50,13 +50,15 @@ pub struct App {
 }
 
 pub enum GameScreen {
+    /// the main menu
+    Menu,
+    /// default gameplay screen, with world map and log
     Main,
-    Log {
-        offset: usize,
-    },
-    Examine {
-        cursor: Position,
-    },
+    /// display fullscreen log with offset
+    Log { offset: usize },
+    /// use the examine cursor to look at tiles
+    Examine { cursor: Position },
+    /// mode for aiming targetable skills at enemies
     Targeting {
         cursor: Position,
         targeting: TargetingMode,
@@ -87,8 +89,7 @@ impl App {
             // overriden by app.generate_dungeon() below
             gamemap: GameMap::new(0, 0, Vec::new()),
 
-            // main is the default starting screen for the game
-            game_screen: GameScreen::Main,
+            game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
             next_id,
             inventory: Vec::new(),

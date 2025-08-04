@@ -59,8 +59,6 @@ impl App {
                         // update fov
                         let view_radius = 8;
                         self.update_fov(view_radius);
-
-                        // self.log.push(String::from("### new turn"));
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
