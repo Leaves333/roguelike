@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use ratatui::style::Style;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     components::{Object, Position},
@@ -12,9 +13,11 @@ use crate::{
 mod event_handler;
 mod procgen;
 mod render;
+mod saving;
 
 pub const PLAYER: usize = 0;
 
+#[derive(Serialize, Deserialize)]
 pub struct Log {
     messages: Vec<(String, Style)>,
 }

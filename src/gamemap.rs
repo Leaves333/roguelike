@@ -1,8 +1,9 @@
 use crate::components::Renderable;
 
 use ratatui::style::Color;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tile {
     pub walkable: bool,
     pub transparent: bool,
@@ -79,6 +80,7 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
     (idx % width, idx / width)
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct GameMap {
     pub width: u16,
     pub height: u16,

@@ -1,6 +1,7 @@
 use ratatui::style::Color;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     pub x: u16,
     pub y: u16,
@@ -12,21 +13,21 @@ impl Position {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Renderable {
     pub glyph: char,
     pub fg: Color,
     pub bg: Color,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum RenderStatus {
     Hide,
     ShowInFOV,
     AlwaysShow,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Object {
     pub name: String,
     pub pos: Position,
@@ -77,7 +78,7 @@ impl Object {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Fighter {
     pub max_hp: u16,
     pub hp: u16,
@@ -98,12 +99,12 @@ impl Fighter {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum AIType {
     Melee,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum DeathCallback {
     Player,
     Monster,
@@ -111,7 +112,7 @@ pub enum DeathCallback {
 
 /// represents information about an item.
 /// should not store persistent data, as this will get cloned
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Item {
     Heal,
     Lightning,

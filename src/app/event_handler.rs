@@ -64,6 +64,7 @@ impl App {
                         // nothing happens
                     }
                     PlayerAction::Exit => {
+                        self.save_game()?;
                         break Ok(());
                     }
                 }
