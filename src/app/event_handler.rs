@@ -177,6 +177,21 @@ impl App {
 
         // keybinds specific to certain gamescreens
         match self.game_screen {
+            // main menu controls
+            GameScreen::Menu => {
+                match key.code {
+                    KeyCode::Char('n') => {
+                        // start new game
+                        // TODO: code to initialize a new game
+                        self.switch_to_main_screen();
+                    }
+                    KeyCode::Char('q') => {
+                        // quit the game
+                        return PlayerAction::Exit;
+                    }
+                    _ => {}
+                }
+            }
             GameScreen::Main => {
                 match key.code {
                     // use item from invetory: '1' to '9' and '0'
@@ -273,7 +288,6 @@ impl App {
                 }
                 _ => {}
             },
-            _ => {}
         };
 
         // if no keybinds were matched
