@@ -16,7 +16,7 @@ mod render;
 pub const PLAYER: usize = 0;
 
 pub struct Log {
-    pub messages: Vec<(String, Style)>,
+    messages: Vec<(String, Style)>,
 }
 
 impl Log {
@@ -24,9 +24,19 @@ impl Log {
         Self { messages: vec![] }
     }
 
-    /// add the new message as a tuple, with the text and the color
+    /// add the new message as a tuple, with the text and the style
     pub fn add<T: Into<String>, U: Into<Style>>(&mut self, message: T, style: U) {
         self.messages.push((message.into(), style.into()));
+    }
+
+    /// create a `DoubleEndedIterator` over the messages
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &(String, Style)> {
+        self.messages.iter()
+    }
+
+    /// create a `DoubleEndedIterator` over the messages
+    pub fn len(&self) -> usize {
+        self.messages.len()
     }
 }
 
