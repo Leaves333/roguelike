@@ -4,7 +4,7 @@ use rand::seq::IndexedRandom;
 use ratatui::style::Color;
 
 use crate::{
-    app::{App, GameScreen, PLAYER},
+    app::{App, GameScreen, Log, PLAYER},
     components::{DeathCallback, Item, Object, Position},
     gamemap::GameMap,
 };
@@ -46,12 +46,7 @@ pub fn heal(objects: &mut HashMap<usize, Object>, id: usize, heal_amount: u16) {
 }
 
 /// applies damage to an entity for the specified amount
-pub fn take_damage(
-    objects: &mut HashMap<usize, Object>,
-    log: &mut Vec<String>,
-    id: usize,
-    damage: u16,
-) {
+pub fn take_damage(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usize, damage: u16) {
     let obj = &mut objects.get_mut(&id).unwrap();
     let mut death_callback = None;
     if let Some(fighter) = obj.fighter.as_mut() {
@@ -75,18 +70,18 @@ pub fn take_damage(
     }
 }
 
-pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) {
+pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Log) {
     let player = &mut objects.get_mut(&PLAYER).unwrap();
-    log.push(String::from("you died!"));
+    log.add(String::from("you died!"), Color::Red);
 
     let renderable = &mut player.renderable;
     renderable.glyph = '%';
     renderable.fg = Color::Red;
 }
 
-pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>, id: usize) {
+pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usize) {
     let monster = &mut objects.get_mut(&id).unwrap();
-    log.push(format!("{} dies!", monster.name));
+    log.add(format!("{} dies!", monster.name), Color::Red);
 
     let renderable = &mut monster.renderable;
     renderable.glyph = '%';
@@ -156,7 +151,7 @@ impl Item {
 }
 
 /// effects of a potion of healing. heals the player for 4 hp
-pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) -> UseResult {
+pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Log) -> UseResult {
     let fighter = match &objects.get(&PLAYER).unwrap().fighter {
         Some(x) => x,
         None => {
@@ -165,11 +160,17 @@ pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) ->
     };
 
     if fighter.hp == fighter.max_hp {
-        log.push(String::from("You are already at full health."));
+        log.add(
+            String::from("You are already at full health."),
+            Color::default(),
+        );
         UseResult::Cancelled
     } else {
         heal(objects, PLAYER, 4);
-        log.push(String::from("Your wounds start to close."));
+        log.add(
+            String::from("Your wounds start to close."),
+            Color::default(),
+        );
         UseResult::UsedUp
     }
 }
@@ -178,7 +179,7 @@ pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Vec<String>) ->
 pub fn cast_lightning(
     objects: &mut HashMap<usize, Object>,
     gamemap: &GameMap,
-    log: &mut Vec<String>,
+    log: &mut Log,
     target: Position,
 ) -> UseResult {
     // get all fighters within line of sight, minus the player
@@ -206,14 +207,14 @@ pub fn cast_lightning(
     let target_id = match get_blocking_object_id(objects, gamemap, target) {
         Some(x) => {
             if x == PLAYER {
-                log.push(String::from("Can't target yourself!"));
+                log.add(String::from("Can't target yourself!"), Color::default());
                 return UseResult::Cancelled;
             } else {
                 x
             }
         }
         None => {
-            log.push(String::from("No targets there."));
+            log.add(String::from("No targets there."), Color::default());
             return UseResult::Cancelled;
         }
     };
@@ -233,9 +234,15 @@ pub fn cast_lightning(
 
     if damage > 0 {
         take_damage(objects, log, target_id, damage as u16);
-        log.push(format!("{} for {} damage.", attack_desc, damage));
+        log.add(
+            format!("{} for {} damage.", attack_desc, damage),
+            Color::LightBlue,
+        );
     } else {
-        log.push(format!("{} but does no damage.", attack_desc));
+        log.add(
+            format!("{} but does no damage.", attack_desc),
+            Color::default(),
+        );
     }
 
     UseResult::UsedUp

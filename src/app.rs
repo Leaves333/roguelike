@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use ratatui::style::{Color, Style};
+
 use crate::{
     components::{Item, Object, Position},
     engine::TargetingMode,
@@ -13,13 +15,28 @@ mod render;
 
 pub const PLAYER: usize = 0;
 
+pub struct Log {
+    pub messages: Vec<(String, Style)>,
+}
+
+impl Log {
+    pub fn new() -> Self {
+        Self { messages: vec![] }
+    }
+
+    /// add the new message as a tuple, with the text and the color
+    pub fn add<T: Into<String>, U: Into<Style>>(&mut self, message: T, style: U) {
+        self.messages.push((message.into(), style.into()));
+    }
+}
+
 pub struct App {
     pub gamemap: GameMap,
     pub game_screen: GameScreen,
     pub objects: HashMap<usize, Object>,
     pub next_id: usize,
     pub inventory: Vec<usize>,
-    pub log: Vec<String>,
+    pub log: Log,
 }
 
 pub enum GameScreen {
@@ -65,7 +82,7 @@ impl App {
             objects,
             next_id,
             inventory: Vec::new(),
-            log: Vec::new(),
+            log: Log::new(),
         };
 
         app.generate_dungeon(

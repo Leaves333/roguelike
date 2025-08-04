@@ -128,6 +128,7 @@ impl App {
                 // correct the offset before it gets passed to render fullscreen log
                 let display_idx = self
                     .log
+                    .messages
                     .len()
                     .saturating_sub(horizontal_split[1].height as usize - 2);
                 *offset = (*offset).min(display_idx);
@@ -341,7 +342,12 @@ impl App {
 
     /// renders the text in the log
     fn render_log(&self, frame: &mut Frame, area: layout::Rect) {
-        let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
+        let mut lines: Vec<Line> = self
+            .log
+            .messages
+            .iter()
+            .map(|(text, style)| Line::from(text.as_str()).style(*style))
+            .collect();
         let display_idx = lines.len().saturating_sub(area.height as usize - 2);
         let lines_to_render = lines.split_off(display_idx);
 
@@ -353,7 +359,12 @@ impl App {
     /// renders log text with offset to the fullscreen log viewer
     /// returns the given offset clamped to be in bounds
     fn render_fullscreen_log(&self, frame: &mut Frame, area: layout::Rect, offset: usize) {
-        let mut lines: Vec<Line> = self.log.iter().map(|s| Line::from(s.as_str())).collect();
+        let mut lines: Vec<Line> = self
+            .log
+            .messages
+            .iter()
+            .map(|(text, style)| Line::from(text.as_str()).style(*style))
+            .collect();
 
         let split_idx = lines
             .len()

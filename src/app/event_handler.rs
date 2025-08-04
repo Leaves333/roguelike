@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
+use ratatui::style::Color;
 
 use crate::components::{AIType, Item, Position, RenderStatus};
 use crate::engine::{UseResult, take_damage};
@@ -413,11 +414,15 @@ impl App {
 
         if damage > 0 {
             take_damage(&mut self.objects, &mut self.log, target_id, damage);
-            self.log
-                .push(format!("{} for {} damage.", attack_desc, damage));
+            self.log.add(
+                format!("{} for {} damage.", attack_desc, damage),
+                Color::default(),
+            );
         } else {
-            self.log
-                .push(format!("{} but does no damage.", attack_desc));
+            self.log.add(
+                format!("{} but does no damage.", attack_desc),
+                Color::default(),
+            );
         }
     }
 
@@ -515,7 +520,8 @@ impl App {
     /// moves and item from the gamemap into the player inventory based on object id
     fn pick_item_up(&mut self, id: usize) {
         if self.inventory.len() >= 10 {
-            self.log.push(format!("Cannot hold that many items."));
+            self.log
+                .add(format!("Cannot hold that many items."), Color::default());
         } else {
             let idx = self.gamemap.object_ids.iter().position(|&x| x == id);
             match idx {
@@ -528,7 +534,8 @@ impl App {
                     let item_obj = self.objects.get_mut(&item_id).unwrap();
                     item_obj.render_status = RenderStatus::Hide;
 
-                    self.log.push(format!("Picked up {}.", item_obj.name));
+                    self.log
+                        .add(format!("Picked up {}.", item_obj.name), Color::default());
                 }
                 None => {
                     panic!("invalid object id passed to pick_item_up()!")
