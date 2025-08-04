@@ -203,7 +203,21 @@ pub fn cast_lightning(
     // let mut rng = rand::rng();
     // let target_id = valid_targets.choose(&mut rng).unwrap();
 
-    let target_id = get_blocking_object_id(objects, gamemap, target).unwrap();
+    let target_id = match get_blocking_object_id(objects, gamemap, target) {
+        Some(x) => {
+            if x == PLAYER {
+                log.push(String::from("Can't target yourself!"));
+                return UseResult::Cancelled;
+            } else {
+                x
+            }
+        }
+        None => {
+            log.push(String::from("No targets there."));
+            return UseResult::Cancelled;
+        }
+    };
+
     let fighter = match &objects.get(&target_id).unwrap().fighter {
         Some(x) => x,
         None => {

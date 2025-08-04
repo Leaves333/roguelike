@@ -263,8 +263,6 @@ impl App {
                 ..
             } => match key.code {
                 KeyCode::Enter => {
-                    // select target at cursor
-
                     // use the item and exit targeting mode
                     let use_result = self.use_item(inventory_idx, Some(cursor.clone()));
                     self.game_screen = GameScreen::Main;
