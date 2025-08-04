@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use rand::seq::IndexedRandom;
 use ratatui::style::Color;
 
 use crate::{

@@ -122,6 +122,7 @@ impl GameMap {
         self.explored[coords_to_idx(x, y, self.width)]
     }
 
+    #[allow(dead_code)]
     pub fn set_explored(&mut self, x: u16, y: u16, value: bool) {
         self.explored[coords_to_idx(x, y, self.width)] = value;
     }

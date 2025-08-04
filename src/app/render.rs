@@ -1,4 +1,3 @@
-use rand::seq::IndexedRandom;
 use ratatui::{
     Frame,
     buffer::Buffer,
@@ -11,7 +10,6 @@ use ratatui::{
 use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, RenderStatus, Renderable},
-    engine::TargetingMode,
     gamemap::{self, Tile, TileType},
 };
 
