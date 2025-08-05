@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ratatui::style::Color;
+use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
     app::{App, GameScreen, Log, PLAYER},
@@ -71,7 +71,7 @@ pub fn take_damage(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usiz
 
 pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Log) {
     let player = &mut objects.get_mut(&PLAYER).unwrap();
-    log.add(String::from("you died!"), Color::Red);
+    log.add(String::from("You died!"), Style::new().italic().red());
 
     let renderable = &mut player.renderable;
     renderable.glyph = '%';

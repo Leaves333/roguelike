@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, usize};
 
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,53 @@ impl Log {
     /// create a `DoubleEndedIterator` over the messages
     pub fn len(&self) -> usize {
         self.messages.len()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ObjectMap {
+    objects: HashMap<usize, Object>,
+    next_id: usize,
+}
+
+impl ObjectMap {
+    /// constructs a new ObjectMap and inserts the player object into it.
+    /// this guarantees that player id is always 0.
+    pub fn new(player: Object) -> Self {
+        let mut map = Self {
+            objects: HashMap::new(),
+            next_id: 0,
+        };
+        map.add(player);
+        map
+    }
+
+    /// add a new object into the map, incrementing the next id
+    /// returns the id that the object was allocated
+    pub fn add(&mut self, obj: Object) -> usize {
+        let ret = self.next_id;
+        self.objects.insert(self.next_id, obj);
+        self.next_id += 1;
+        ret
+    }
+
+    pub fn get(&self, id: &usize) -> Option<&Object> {
+        self.objects.get(id)
+    }
+
+    pub fn get_mut(&mut self, id: &usize) -> Option<&mut Object> {
+        self.objects.get_mut(id)
+    }
+
+    /// returns a mutable reference to the underlying hashmap.
+    /// WARN: do not add items into the hashmap using this method!
+    ///       it will not update next_id
+    pub fn get_mut_contents(&mut self) -> &mut HashMap<usize, Object> {
+        &mut self.objects
+    }
+
+    pub fn next_id(&self) -> usize {
+        self.next_id
     }
 }
 

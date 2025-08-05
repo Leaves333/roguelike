@@ -119,6 +119,12 @@ impl App {
             rooms.push(new_room);
         }
 
+        let last_room = rooms.last().unwrap();
+        let (stairs_x, stairs_y) = last_room.center();
+        self.objects
+            .insert(self.next_id, spawn(stairs_x, stairs_y, entities::stairs()));
+        self.next_id += 1;
+
         self.gamemap = dungeon;
     }
 

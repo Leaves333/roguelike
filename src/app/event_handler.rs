@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, Item, Position, RenderStatus};
+use crate::components::{AIType, Item, Object, Position, RenderStatus};
 use crate::engine::{UseResult, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
@@ -200,7 +200,7 @@ impl App {
             }
             GameScreen::Main => {
                 match key.code {
-                    // use item from invetory: '1' to '9' and '0'
+                    // use item from inventory: '1' to '9' and '0'
                     KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
                         let index = match c {
                             '1'..='9' => c as usize - '1' as usize,
@@ -226,12 +226,6 @@ impl App {
                         }
                     }
 
-                    // can only go to examine mode from main game screen
-                    KeyCode::Char('x') => {
-                        self.toggle_examine_mode();
-                        return PlayerAction::DidntTakeTurn;
-                    }
-
                     // pick up the first item at location
                     KeyCode::Char('g') => {
                         let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
@@ -251,6 +245,18 @@ impl App {
                             }
                         }
                     }
+
+                    // can only go to examine mode from main game screen
+                    KeyCode::Char('x') => {
+                        self.toggle_examine_mode();
+                        return PlayerAction::DidntTakeTurn;
+                    }
+
+                    // go down stairs if stairs exist
+                    KeyCode::Char('>') => {
+                        let _ = self.go_down_stairs();
+                    }
+
                     _ => {}
                 }
             }
@@ -589,5 +595,35 @@ impl App {
         };
 
         use_result
+    }
+
+    /// attempts to go down stairs at the current location.
+    /// returns true if successful, false if not
+    fn go_down_stairs(&mut self) -> bool {
+        let player_pos = self.objects.get(&PLAYER).unwrap().pos;
+
+        // match for objects at player_pos
+        let objects_at_pos: Vec<&Object> = self
+            .gamemap
+            .object_ids
+            .iter()
+            .map(|id| self.objects.get(id).unwrap())
+            .filter(|&obj| obj.pos == player_pos)
+            .collect();
+
+        let on_stairs = objects_at_pos
+            .iter()
+            .filter(|&obj| obj.name == "Stairs")
+            .count()
+            > 0;
+
+        if !on_stairs {
+            self.log
+                .add("Can't go down, not standing on stairs.", Color::default());
+            return false;
+        }
+
+        todo!("add stairs code :(");
+        true
     }
 }

@@ -11,6 +11,28 @@ pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
     object
 }
 
+pub fn stairs() -> Object {
+    let name = String::from("Stairs");
+    let renderable = Renderable {
+        glyph: '>',
+        fg: Color::Gray,
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::AlwaysShow;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+}
+
 pub fn player() -> Object {
     let name = String::from("Player");
     let renderable = Renderable {
