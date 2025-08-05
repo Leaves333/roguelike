@@ -27,12 +27,23 @@ pub enum RenderStatus {
     AlwaysShow,
 }
 
+// NOTE: enums are ordered by their discriminants. discriminants are smallest for values at the top
+// see https://doc.rust-lang.org/std/cmp/trait.Ord.html
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RenderLayer {
+    Corpse,
+    Item,
+    Blocking,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Object {
     pub name: String,
     pub pos: Position,
     pub renderable: Renderable,
     pub render_status: RenderStatus,
+    pub render_layer: RenderLayer,
     pub blocks_movement: bool,
     pub alive: bool,
     pub fighter: Option<Fighter>,
@@ -46,6 +57,7 @@ impl Object {
         name: String,
         renderable: Renderable,
         render_status: RenderStatus,
+        render_layer: RenderLayer,
         blocks_movement: bool,
         alive: bool,
     ) -> Self {
@@ -53,6 +65,7 @@ impl Object {
             name,
             pos: Position::default(),
             renderable,
+            render_layer,
             render_status,
             blocks_movement,
             alive,

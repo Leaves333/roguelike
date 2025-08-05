@@ -359,7 +359,7 @@ impl App {
         indices_to_draw.sort_by(|a, b| {
             let obj_a = self.objects.get(&a).unwrap();
             let obj_b = self.objects.get(&b).unwrap();
-            obj_a.blocks_movement.cmp(&obj_b.blocks_movement)
+            obj_a.render_layer.cmp(&obj_b.render_layer)
         });
 
         for obj in indices_to_draw

@@ -4,7 +4,7 @@ use ratatui::style::Color;
 
 use crate::{
     app::{App, GameScreen, Log, PLAYER},
-    components::{DeathCallback, Item, Object, Position},
+    components::{DeathCallback, Item, Object, Position, RenderLayer},
     gamemap::GameMap,
 };
 
@@ -87,6 +87,7 @@ pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Log, id: us
     renderable.fg = Color::Red;
 
     monster.blocks_movement = false;
+    monster.render_layer = RenderLayer::Corpse;
     monster.alive = false;
     monster.fighter = None;
     monster.name = format!("remains of {}", monster.name);

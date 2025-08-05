@@ -1,6 +1,8 @@
 // this file contains a list of spawnable entities
 
-use crate::components::{AIType, DeathCallback, Fighter, Item, Object, RenderStatus, Renderable};
+use crate::components::{
+    AIType, DeathCallback, Fighter, Item, Object, RenderLayer, RenderStatus, Renderable,
+};
 use ratatui::style::Color;
 
 pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
@@ -17,10 +19,19 @@ pub fn player() -> Object {
         bg: Color::Reset,
     };
     let render_status = RenderStatus::AlwaysShow;
+    let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).set_fighter({
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_fighter({
         let max_hp = 20;
         let defense = 0;
         let power = 2;
@@ -36,17 +47,25 @@ pub fn orc() -> Object {
         bg: Color::Reset,
     };
     let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive)
-        .set_fighter({
-            let max_hp = 5;
-            let defense = 0;
-            let power = 2;
-            Fighter::new(max_hp, defense, power, DeathCallback::Monster)
-        })
-        .set_ai(AIType::Melee)
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_fighter({
+        let max_hp = 5;
+        let defense = 0;
+        let power = 2;
+        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+    })
+    .set_ai(AIType::Melee)
 }
 
 pub fn troll() -> Object {
@@ -57,17 +76,25 @@ pub fn troll() -> Object {
         bg: Color::Reset,
     };
     let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive)
-        .set_fighter({
-            let max_hp = 8;
-            let defense = 1;
-            let power = 4;
-            Fighter::new(max_hp, defense, power, DeathCallback::Monster)
-        })
-        .set_ai(AIType::Melee)
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_fighter({
+        let max_hp = 8;
+        let defense = 1;
+        let power = 4;
+        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+    })
+    .set_ai(AIType::Melee)
 }
 
 pub fn potion_cure_wounds() -> Object {
@@ -78,10 +105,19 @@ pub fn potion_cure_wounds() -> Object {
         bg: Color::Reset,
     };
     let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).set_item(Item::Heal)
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Heal)
 }
 
 pub fn scroll_lightning() -> Object {
@@ -92,8 +128,17 @@ pub fn scroll_lightning() -> Object {
         bg: Color::Reset,
     };
     let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(name, renderable, render_status, blocks_movement, alive).set_item(Item::Lightning)
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Lightning)
 }
