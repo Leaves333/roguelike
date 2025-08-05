@@ -186,6 +186,11 @@ impl App {
                         // TODO: code to initialize a new game
                         self.switch_to_main_screen();
                     }
+                    KeyCode::Char('l') => {
+                        // loads an existing game from a save file
+                        let _ = self.load_game();
+                        self.switch_to_main_screen();
+                    }
                     KeyCode::Char('q') => {
                         // quit the game
                         return PlayerAction::Exit;
