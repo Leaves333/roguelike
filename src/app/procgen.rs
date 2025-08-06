@@ -1,6 +1,9 @@
+use rand::distr::Distribution;
+use rand::distr::weighted::WeightedIndex;
 use rand::{Rng, random_ratio};
 
 use crate::app::{App, PLAYER};
+use crate::components::Object;
 use crate::entities::spawn;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
@@ -154,6 +157,9 @@ impl App {
         let mut rng = rand::rng();
 
         // place monsters
+        let monsters: Vec<(fn() -> Object, usize)> = vec![(entities::orc, 4), (entities::troll, 1)];
+        let dist = WeightedIndex::new(monsters.iter().map(|x| x.1)).unwrap();
+
         let number_of_monsters = rng.random_range(0..=maximum_monsters);
         for _ in 0..number_of_monsters {
             let x = rng.random_range((room.x1 + 1)..room.x2);
@@ -167,18 +173,19 @@ impl App {
                 None => {}
             }
 
-            if random_ratio(4, 5) {
-                dungeon
-                    .object_ids
-                    .push(self.objects.add(spawn(x, y, entities::orc())));
-            } else {
-                dungeon
-                    .object_ids
-                    .push(self.objects.add(spawn(x, y, entities::troll())));
-            }
+            let entity_callback = monsters[dist.sample(&mut rng)].0;
+            dungeon
+                .object_ids
+                .push(self.objects.add(spawn(x, y, entity_callback())));
         }
 
         // use similar logic for items
+        let items: Vec<(fn() -> Object, usize)> = vec![
+            (entities::potion_cure_wounds, 4),
+            (entities::scroll_lightning, 2),
+        ];
+        let dist = WeightedIndex::new(items.iter().map(|x| x.1)).unwrap();
+
         let number_of_items = rng.random_range(0..=maximum_items);
         for _ in 0..number_of_items {
             let x = rng.random_range((room.x1 + 1)..room.x2);
@@ -192,22 +199,10 @@ impl App {
                 None => {}
             }
 
-            let mut rng = rand::rng();
-            let dice = rng.random::<f32>();
-
-            if dice > 0.5 {
-                dungeon.object_ids.push(self.objects.add(spawn(
-                    x,
-                    y,
-                    entities::scroll_lightning(),
-                )));
-            } else {
-                dungeon.object_ids.push(self.objects.add(spawn(
-                    x,
-                    y,
-                    entities::potion_cure_wounds(),
-                )));
-            }
+            let entity_callback = items[dist.sample(&mut rng)].0;
+            dungeon
+                .object_ids
+                .push(self.objects.add(spawn(x, y, entity_callback())));
         }
     }
 }
