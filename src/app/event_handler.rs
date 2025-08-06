@@ -12,6 +12,7 @@ use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
 
+use super::procgen::DungeonConfig;
 use super::{App, GameScreen, PLAYER};
 
 enum InputDirection {
@@ -50,6 +51,11 @@ impl App {
         loop {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
+                // only key press events should trigger, not repeats
+                if !key.is_press() {
+                    continue;
+                }
+
                 let action = self.handle_keys(key);
                 match action {
                     PlayerAction::TookTurn => {
@@ -62,6 +68,7 @@ impl App {
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
+                        continue;
                     }
                     PlayerAction::Exit => {
                         self.save_game()?;
@@ -255,6 +262,8 @@ impl App {
                     // go down stairs if stairs exist
                     KeyCode::Char('>') => {
                         let _ = self.go_down_stairs();
+                        self.switch_to_main_screen();
+                        return PlayerAction::DidntTakeTurn;
                     }
 
                     _ => {}
@@ -355,7 +364,9 @@ impl App {
 
     /// makes a monster act according to melee ai
     fn handle_melee_ai(&mut self, id: usize) {
-        let [Some(player), Some(monster)] = self.objects.get_disjoint_mut([&PLAYER, &id]) else {
+        let [Some(player), Some(monster)] =
+            self.objects.get_contents().get_disjoint_mut([&PLAYER, &id])
+        else {
             panic!("invalid ids while handling melee ai!")
         };
 
@@ -424,8 +435,10 @@ impl App {
             }
         };
 
-        let [Some(attacker), Some(target)] =
-            self.objects.get_disjoint_mut([&attacker_id, &target_id])
+        let [Some(attacker), Some(target)] = self
+            .objects
+            .get_contents()
+            .get_disjoint_mut([&attacker_id, &target_id])
         else {
             panic!("invalid ids passed to melee_action()!");
         };
@@ -623,7 +636,25 @@ impl App {
             return false;
         }
 
-        todo!("add stairs code :(");
+        // NOTE: code to generate next stage
+        self.generate_dungeon(DungeonConfig::default());
+        self.log.add(
+            "As you dive deeper into the dungeon, you find a moment to rest and recover.",
+            Color::Magenta,
+        );
+        self.log.add("You feel stronger.", Color::Magenta);
+        self.update_fov(8);
+
+        let player_fighter = self
+            .objects
+            .get_mut(&PLAYER)
+            .unwrap()
+            .fighter
+            .as_mut()
+            .unwrap();
+        player_fighter.max_hp += 5;
+        player_fighter.hp = player_fighter.max_hp;
+
         true
     }
 }

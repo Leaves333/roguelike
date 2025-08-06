@@ -59,26 +59,41 @@ pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> Vec<(u16, u16)> {
     [seg_one, seg_two].concat()
 }
 
+pub struct DungeonConfig {
+    max_rooms: u16,
+    room_min_size: u16,
+    room_max_size: u16,
+    max_monsters_per_room: u16,
+    max_items_per_room: u16,
+    width: u16,
+    height: u16,
+}
+
+impl DungeonConfig {
+    pub fn default() -> Self {
+        Self {
+            max_rooms: 30,
+            room_min_size: 6,
+            room_max_size: 10,
+            max_monsters_per_room: 2,
+            max_items_per_room: 2,
+            width: 80,
+            height: 24,
+        }
+    }
+}
+
 impl App {
     /// replaces the current gamemap for the app with a new one
-    pub fn generate_dungeon(
-        &mut self,
-        max_rooms: u16,
-        room_min_size: u16,
-        room_max_size: u16,
-        max_monsters_per_room: u16,
-        max_items_per_room: u16,
-        width: u16,
-        height: u16,
-    ) {
-        let mut dungeon = GameMap::new(width, height, Vec::new());
+    pub fn generate_dungeon(&mut self, config: DungeonConfig) {
+        let mut dungeon = GameMap::new(config.width, config.height, Vec::new());
         let mut rooms: Vec<RectangularRoom> = Vec::new();
         dungeon.object_ids.push(PLAYER); // player is currently in this gamemap
 
         let mut rng = rand::rng();
-        for _ in 0..max_rooms {
-            let room_width = rng.random_range(room_min_size..=room_max_size);
-            let room_height = rng.random_range(room_min_size..=room_max_size);
+        for _ in 0..config.max_rooms {
+            let room_width = rng.random_range(config.room_min_size..=config.room_max_size);
+            let room_height = rng.random_range(config.room_min_size..=config.room_max_size);
 
             let x = rng.random_range(0..dungeon.width - room_width);
             let y = rng.random_range(0..dungeon.height - room_height);
@@ -112,8 +127,8 @@ impl App {
             self.place_objects(
                 &new_room,
                 &mut dungeon,
-                max_monsters_per_room,
-                max_items_per_room,
+                config.max_monsters_per_room,
+                config.max_items_per_room,
             );
 
             rooms.push(new_room);
@@ -121,9 +136,10 @@ impl App {
 
         let last_room = rooms.last().unwrap();
         let (stairs_x, stairs_y) = last_room.center();
-        self.objects
-            .insert(self.next_id, spawn(stairs_x, stairs_y, entities::stairs()));
-        self.next_id += 1;
+        let id = self
+            .objects
+            .add(spawn(stairs_x, stairs_y, entities::stairs()));
+        dungeon.object_ids.push(id);
 
         self.gamemap = dungeon;
     }
@@ -152,14 +168,14 @@ impl App {
             }
 
             if random_ratio(4, 5) {
-                self.objects
-                    .insert(self.next_id, spawn(x, y, entities::orc()));
+                dungeon
+                    .object_ids
+                    .push(self.objects.add(spawn(x, y, entities::orc())));
             } else {
-                self.objects
-                    .insert(self.next_id, spawn(x, y, entities::troll()));
+                dungeon
+                    .object_ids
+                    .push(self.objects.add(spawn(x, y, entities::troll())));
             }
-            dungeon.object_ids.push(self.next_id);
-            self.next_id += 1;
         }
 
         // use similar logic for items
@@ -180,15 +196,18 @@ impl App {
             let dice = rng.random::<f32>();
 
             if dice > 0.5 {
-                self.objects
-                    .insert(self.next_id, spawn(x, y, entities::scroll_lightning()));
+                dungeon.object_ids.push(self.objects.add(spawn(
+                    x,
+                    y,
+                    entities::scroll_lightning(),
+                )));
             } else {
-                self.objects
-                    .insert(self.next_id, spawn(x, y, entities::potion_cure_wounds()));
+                dungeon.object_ids.push(self.objects.add(spawn(
+                    x,
+                    y,
+                    entities::potion_cure_wounds(),
+                )));
             }
-
-            dungeon.object_ids.push(self.next_id);
-            self.next_id += 1;
         }
     }
 }

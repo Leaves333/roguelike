@@ -24,7 +24,7 @@ pub struct Renderable {
 pub enum RenderStatus {
     Hide,
     ShowInFOV,
-    AlwaysShow,
+    ShowInExplored,
 }
 
 // NOTE: enums are ordered by their discriminants. discriminants are smallest for values at the top

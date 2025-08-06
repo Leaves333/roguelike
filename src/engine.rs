@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
-    app::{App, GameScreen, Log, PLAYER},
-    components::{DeathCallback, Item, Object, Position, RenderLayer},
+    app::{App, GameScreen, Log, ObjectMap, PLAYER},
+    components::{DeathCallback, Item, Position, RenderLayer},
     gamemap::GameMap,
 };
 
@@ -22,7 +20,7 @@ pub enum TargetingMode {
 }
 
 pub fn get_blocking_object_id(
-    objects: &HashMap<usize, Object>,
+    objects: &ObjectMap,
     gamemap: &GameMap,
     pos: Position,
 ) -> Option<usize> {
@@ -36,7 +34,7 @@ pub fn get_blocking_object_id(
 }
 
 /// heals an entity for the specified amount
-pub fn heal(objects: &mut HashMap<usize, Object>, id: usize, heal_amount: u16) {
+pub fn heal(objects: &mut ObjectMap, id: usize, heal_amount: u16) {
     let obj = objects.get_mut(&id).unwrap();
     if let Some(fighter) = obj.fighter.as_mut() {
         fighter.hp += heal_amount;
@@ -45,7 +43,7 @@ pub fn heal(objects: &mut HashMap<usize, Object>, id: usize, heal_amount: u16) {
 }
 
 /// applies damage to an entity for the specified amount
-pub fn take_damage(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usize, damage: u16) {
+pub fn take_damage(objects: &mut ObjectMap, log: &mut Log, id: usize, damage: u16) {
     let obj = &mut objects.get_mut(&id).unwrap();
     let mut death_callback = None;
     if let Some(fighter) = obj.fighter.as_mut() {
@@ -69,7 +67,7 @@ pub fn take_damage(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usiz
     }
 }
 
-pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Log) {
+pub fn player_death(objects: &mut ObjectMap, log: &mut Log) {
     let player = &mut objects.get_mut(&PLAYER).unwrap();
     log.add(String::from("You died!"), Style::new().italic().red());
 
@@ -78,7 +76,7 @@ pub fn player_death(objects: &mut HashMap<usize, Object>, log: &mut Log) {
     renderable.fg = Color::Red;
 }
 
-pub fn monster_death(objects: &mut HashMap<usize, Object>, log: &mut Log, id: usize) {
+pub fn monster_death(objects: &mut ObjectMap, log: &mut Log, id: usize) {
     let monster = &mut objects.get_mut(&id).unwrap();
     log.add(format!("{} dies!", monster.name), Color::Red);
 
@@ -151,7 +149,7 @@ impl Item {
 }
 
 /// effects of a potion of healing. heals the player for 4 hp
-pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Log) -> UseResult {
+pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
     let fighter = match &objects.get(&PLAYER).unwrap().fighter {
         Some(x) => x,
         None => {
@@ -177,7 +175,7 @@ pub fn cast_heal(objects: &mut HashMap<usize, Object>, log: &mut Log) -> UseResu
 
 /// effects of a scroll of lightning. smites a chosen target within line of sight
 pub fn cast_lightning(
-    objects: &mut HashMap<usize, Object>,
+    objects: &mut ObjectMap,
     gamemap: &GameMap,
     log: &mut Log,
     target: Position,

@@ -21,7 +21,6 @@ pub struct CharWidget {
 
 impl Widget for CharWidget {
     fn render(self, area: ratatui::layout::Rect, buf: &mut Buffer) {
-        // add and subtract 1 to account for borders
         let tx = area.x + self.position.x as u16;
         let ty = area.y + self.position.y as u16;
         if tx < area.right() && ty < area.bottom() {
@@ -382,8 +381,10 @@ impl App {
                         frame.render_widget(ch, inner_area);
                     }
                 }
-                RenderStatus::AlwaysShow => {
-                    frame.render_widget(ch, inner_area);
+                RenderStatus::ShowInExplored => {
+                    if self.gamemap.is_explored(position.x, position.y) {
+                        frame.render_widget(ch, inner_area);
+                    }
                 }
             }
         }

@@ -18,7 +18,7 @@ pub fn stairs() -> Object {
         fg: Color::Gray,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::AlwaysShow;
+    let render_status = RenderStatus::ShowInExplored;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
@@ -40,7 +40,7 @@ pub fn player() -> Object {
         fg: Color::default(),
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::AlwaysShow;
+    let render_status = RenderStatus::ShowInExplored;
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;

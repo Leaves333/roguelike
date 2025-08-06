@@ -1,5 +1,6 @@
 use std::{collections::HashMap, usize};
 
+use procgen::DungeonConfig;
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
@@ -81,10 +82,11 @@ impl ObjectMap {
     /// returns a mutable reference to the underlying hashmap.
     /// WARN: do not add items into the hashmap using this method!
     ///       it will not update next_id
-    pub fn get_mut_contents(&mut self) -> &mut HashMap<usize, Object> {
+    pub fn get_contents(&mut self) -> &mut HashMap<usize, Object> {
         &mut self.objects
     }
 
+    #[allow(dead_code)]
     pub fn next_id(&self) -> usize {
         self.next_id
     }
@@ -93,8 +95,7 @@ impl ObjectMap {
 pub struct App {
     pub gamemap: GameMap,
     pub game_screen: GameScreen,
-    pub objects: HashMap<usize, Object>,
-    pub next_id: usize,
+    pub objects: ObjectMap,
     pub inventory: Vec<usize>,
     pub log: Log,
 }
@@ -120,19 +121,7 @@ pub enum GameScreen {
 impl App {
     pub fn new() -> Self {
         let player = spawn(0, 0, entities::player());
-        let mut objects = HashMap::new();
-        objects.insert(PLAYER, player);
-
-        let next_id = 1;
-
-        let max_rooms = 30;
-        let room_min_size = 6;
-        let room_max_size = 10;
-        let max_monsters_per_room = 2;
-        let max_items_per_room = 2;
-
-        let dungeon_width = 80;
-        let dungeon_height = 24;
+        let objects = ObjectMap::new(player);
 
         let mut app = Self {
             // NOTE: this is a dummy gamemap that will get
@@ -141,20 +130,11 @@ impl App {
 
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
-            next_id,
             inventory: Vec::new(),
             log: Log::new(),
         };
 
-        app.generate_dungeon(
-            max_rooms,
-            room_min_size,
-            room_max_size,
-            max_monsters_per_room,
-            max_items_per_room,
-            dungeon_width,
-            dungeon_height,
-        );
+        app.generate_dungeon(DungeonConfig::default());
         app.update_fov(8);
 
         app
