@@ -127,12 +127,23 @@ impl App {
                 }
             }
 
+            // loot tables for monsters and items
+            let monsters: Vec<(fn() -> Object, usize)> =
+                vec![(entities::orc, 4), (entities::troll, 1)];
+
+            let items: Vec<(fn() -> Object, usize)> = vec![
+                (entities::potion_cure_wounds, 4),
+                (entities::scroll_lightning, 2),
+            ];
+
             self.place_objects(
                 &new_room,
                 &mut dungeon,
+                &monsters,
                 config.max_monsters_per_room,
-                config.max_items_per_room,
             );
+
+            self.place_objects(&new_room, &mut dungeon, &items, config.max_items_per_room);
 
             rooms.push(new_room);
         }
@@ -151,42 +162,13 @@ impl App {
         &mut self,
         room: &RectangularRoom,
         dungeon: &mut GameMap,
-        maximum_monsters: u16,
-        maximum_items: u16,
+        object_weights: &Vec<(fn() -> Object, usize)>,
+        maximum_objects: u16,
     ) {
         let mut rng = rand::rng();
+        let dist = WeightedIndex::new(object_weights.iter().map(|x| x.1)).unwrap();
 
-        // place monsters
-        let monsters: Vec<(fn() -> Object, usize)> = vec![(entities::orc, 4), (entities::troll, 1)];
-        let dist = WeightedIndex::new(monsters.iter().map(|x| x.1)).unwrap();
-
-        let number_of_monsters = rng.random_range(0..=maximum_monsters);
-        for _ in 0..number_of_monsters {
-            let x = rng.random_range((room.x1 + 1)..room.x2);
-            let y = rng.random_range((room.y1 + 1)..room.y2);
-
-            // check if it intersects with any entities
-            match self.get_blocking_object_id(x, y) {
-                Some(_) => {
-                    continue;
-                }
-                None => {}
-            }
-
-            let entity_callback = monsters[dist.sample(&mut rng)].0;
-            dungeon
-                .object_ids
-                .push(self.objects.add(spawn(x, y, entity_callback())));
-        }
-
-        // use similar logic for items
-        let items: Vec<(fn() -> Object, usize)> = vec![
-            (entities::potion_cure_wounds, 4),
-            (entities::scroll_lightning, 2),
-        ];
-        let dist = WeightedIndex::new(items.iter().map(|x| x.1)).unwrap();
-
-        let number_of_items = rng.random_range(0..=maximum_items);
+        let number_of_items = rng.random_range(0..=maximum_objects);
         for _ in 0..number_of_items {
             let x = rng.random_range((room.x1 + 1)..room.x2);
             let y = rng.random_range((room.y1 + 1)..room.y2);
@@ -199,7 +181,7 @@ impl App {
                 None => {}
             }
 
-            let entity_callback = items[dist.sample(&mut rng)].0;
+            let entity_callback = object_weights[dist.sample(&mut rng)].0;
             dungeon
                 .object_ids
                 .push(self.objects.add(spawn(x, y, entity_callback())));
