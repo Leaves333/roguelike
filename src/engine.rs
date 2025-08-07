@@ -11,6 +11,7 @@ use crate::{
 /// used to determine if an item was sucessfully used
 pub enum UseResult {
     UsedUp,
+    Equipped,
     Cancelled,
 }
 
@@ -144,11 +145,17 @@ impl Item {
                 &mut app.log,
                 target.unwrap(),
             ),
+            Item::Equipment => equip(app),
         }
     }
 }
 
-/// effects of a potion of healing. heals the player for 4 hp
+// equips an item
+pub fn equip(app: &mut App) -> UseResult {
+    todo!()
+}
+
+/// effects of a potion of healing. heals the player
 pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
     let fighter = match &objects.get(&PLAYER).unwrap().fighter {
         Some(x) => x,
@@ -164,7 +171,8 @@ pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
         );
         UseResult::Cancelled
     } else {
-        heal(objects, PLAYER, 4);
+        const HEAL_AMOUNT: u16 = 10;
+        heal(objects, PLAYER, HEAL_AMOUNT);
         log.add(
             String::from("Your wounds start to close."),
             Color::default(),

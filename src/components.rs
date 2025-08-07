@@ -49,6 +49,7 @@ pub struct Object {
     pub fighter: Option<Fighter>,
     pub ai: Option<AIType>,
     pub item: Option<Item>,
+    pub equipment: Option<Equipment>,
 }
 
 impl Object {
@@ -72,6 +73,7 @@ impl Object {
             fighter: None,
             ai: None,
             item: None,
+            equipment: None,
         }
     }
 
@@ -87,6 +89,11 @@ impl Object {
 
     pub fn set_item(mut self, item: Item) -> Self {
         self.item = Some(item);
+        self
+    }
+
+    pub fn set_equipment(mut self, equipment: Equipment) -> Self {
+        self.equipment = Some(equipment);
         self
     }
 }
@@ -129,4 +136,19 @@ pub enum DeathCallback {
 pub enum Item {
     Heal,
     Lightning,
+    Equipment,
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+pub enum Slot {
+    Weapon = 0,
+    Head = 1,
+    Body = 2,
+}
+pub const SLOT_LENGTH: usize = 3;
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Equipment {
+    pub slot: Slot,
+    pub equipped: bool,
 }

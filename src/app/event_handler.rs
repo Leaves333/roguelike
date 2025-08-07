@@ -221,6 +221,7 @@ impl App {
                                 let use_result = self.use_item(index, None);
                                 return match use_result {
                                     UseResult::UsedUp => PlayerAction::TookTurn,
+                                    UseResult::Equipped => PlayerAction::TookTurn,
                                     UseResult::Cancelled => PlayerAction::DidntTakeTurn,
                                 };
                             }
@@ -298,6 +299,7 @@ impl App {
 
                     return match use_result {
                         UseResult::UsedUp => PlayerAction::TookTurn,
+                        UseResult::Equipped => PlayerAction::TookTurn,
                         UseResult::Cancelled => PlayerAction::DidntTakeTurn,
                     };
                 }
@@ -579,13 +581,28 @@ impl App {
         }
     }
 
-    /// returns the item object for a given index in the inventory
+    /// returns the item for a given index in the inventory
     fn get_item_in_inventory(&self, inventory_idx: usize) -> &Item {
         let item_id = self.inventory[inventory_idx];
         match &self.objects.get(&item_id).unwrap().item {
             Some(x) => x,
             None => {
-                panic!("use_item called with an object without an item component!")
+                panic!(
+                    "get_item_in_inventory() called, but object does not have an item component!"
+                )
+            }
+        }
+    }
+
+    /// returns the object for a given index in the inventory
+    fn get_object_in_inventory(&self, inventory_idx: usize) -> &Object {
+        let item_id = self.inventory[inventory_idx];
+        match self.objects.get(&item_id) {
+            Some(x) => x,
+            None => {
+                panic!(
+                    "get_object_in_inventory() called, but could not find an object with that id!"
+                )
             }
         }
     }
@@ -602,6 +619,19 @@ impl App {
             }
             UseResult::Cancelled => {
                 // item wasn't used, don't delete it
+            }
+            UseResult::Equipped => {
+                // try to equip item by moving it from the inventory to the equipment slot
+
+                // get the index that this item is supposed to be equipped in
+                let obj = self.get_object_in_inventory(inventory_idx);
+                let equip = obj.equipment.as_ref().unwrap();
+                let equip_idx = equip.slot as usize;
+
+                // check if the slot is empty or not
+                if self.equipment[equip_idx].is_some() {
+                    return UseResult::Cancelled;
+                }
             }
         };
 

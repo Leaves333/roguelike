@@ -5,7 +5,7 @@ use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    components::{Object, Position},
+    components::{Object, Position, SLOT_LENGTH},
     engine::TargetingMode,
     entities::{self, spawn},
     gamemap::GameMap,
@@ -98,6 +98,7 @@ pub struct App {
     pub game_screen: GameScreen,
     pub objects: ObjectMap,
     pub inventory: Vec<usize>,
+    pub equipment: Vec<Option<usize>>,
     pub log: Log,
 }
 
@@ -132,6 +133,7 @@ impl App {
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
             inventory: Vec::new(),
+            equipment: vec![None; SLOT_LENGTH],
             log: Log::new(),
         }
     }
