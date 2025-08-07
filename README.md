@@ -16,19 +16,10 @@ graphical i'll work on it later...
 
 ## goals
 
-- [x] generic entities
-- [x] map gen
-    - [x] procedural generation???
-    - [x] field of view
-- [ ] combat
-    - [ ] pathfinding
-    - [ ] health and damage
-    - [ ] monster ai
-- [ ] interface
-    - [ ] inventory
-    - [ ] items
-
+- [ ] make dungeon generation scale with level
+- [ ] equipment
+- [ ] redo rendering to be centered
 
 ## ideas:
 
-- magitech elemental guns, focus on positioning + resource management
+head empty no thoughts.
