@@ -26,15 +26,6 @@ pub fn shroud_renderable() -> Renderable {
 }
 
 impl Tile {
-    // pub fn new(walkable: bool, transparent: bool, light: Renderable, dark: Renderable) -> Self {
-    //     Self {
-    //         walkable,
-    //         transparent,
-    //         light,
-    //         dark,
-    //     }
-    // }
-
     /// constructs a tile from a TileType enum
     pub fn from_type(tile_type: TileType) -> Tile {
         match tile_type {
@@ -84,6 +75,7 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
+    pub level: u16,
     pub object_ids: Vec<usize>,
     pub tiles: Vec<Tile>,
     pub visible: Vec<bool>,
@@ -91,10 +83,11 @@ pub struct GameMap {
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16, object_ids: Vec<usize>) -> Self {
+    pub fn new(width: u16, height: u16, level: u16, object_ids: Vec<usize>) -> Self {
         Self {
             width,
             height,
+            level,
             object_ids,
             tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],

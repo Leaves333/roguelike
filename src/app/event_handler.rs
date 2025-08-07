@@ -13,7 +13,7 @@ use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::procgen::DungeonConfig;
-use super::{App, GameScreen, PLAYER};
+use super::{App, GameScreen, PLAYER, VIEW_RADIUS};
 
 enum InputDirection {
     Up,
@@ -51,11 +51,6 @@ impl App {
         loop {
             terminal.draw(|frame| self.render(frame))?;
             if let Event::Key(key) = event::read()? {
-                // only key press events should trigger, not repeats
-                if !key.is_press() {
-                    continue;
-                }
-
                 let action = self.handle_keys(key);
                 match action {
                     PlayerAction::TookTurn => {
@@ -63,8 +58,7 @@ impl App {
                         self.handle_monster_turns();
 
                         // update fov
-                        let view_radius = 8;
-                        self.update_fov(view_radius);
+                        self.update_fov(VIEW_RADIUS);
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
@@ -190,7 +184,7 @@ impl App {
                 match key.code {
                     KeyCode::Char('n') => {
                         // start new game
-                        // TODO: code to initialize a new game
+                        self.new_game();
                         self.switch_to_main_screen();
                     }
                     KeyCode::Char('l') => {
@@ -315,6 +309,11 @@ impl App {
         return PlayerAction::DidntTakeTurn;
     }
 
+    pub fn new_game(&mut self) {
+        self.generate_dungeon(DungeonConfig::default());
+        self.update_fov(VIEW_RADIUS);
+    }
+
     fn toggle_fullscreen_log(&mut self) {
         match self.game_screen {
             GameScreen::Log { offset: _ } => self.game_screen = GameScreen::Main,
@@ -370,12 +369,11 @@ impl App {
             panic!("invalid ids while handling melee ai!")
         };
 
-        let out_of_range =
-            monster.pos.x.abs_diff(player.pos.x) > 8 || monster.pos.y.abs_diff(player.pos.y) > 8;
-
-        if out_of_range {
-            return;
-        }
+        // let out_of_range = monster.pos.x.abs_diff(player.pos.x) > VIEW_RADIUS
+        //     || monster.pos.y.abs_diff(player.pos.y) > VIEW_RADIUS;
+        // if out_of_range {
+        //     return;
+        // }
 
         // NOTE: rework los algorithm later, for now assume it is symmetric
         if !self.gamemap.is_visible(monster.pos.x, monster.pos.y) {
@@ -637,13 +635,14 @@ impl App {
         }
 
         // NOTE: code to generate next stage
-        self.generate_dungeon(DungeonConfig::default());
+        let cur_level = self.gamemap.level;
+        self.generate_dungeon(DungeonConfig::default().set_level(cur_level + 1));
         self.log.add(
             "As you dive deeper into the dungeon, you find a moment to rest and recover.",
             Color::Magenta,
         );
         self.log.add("You feel stronger.", Color::Magenta);
-        self.update_fov(8);
+        self.update_fov(VIEW_RADIUS);
 
         let player_fighter = self
             .objects

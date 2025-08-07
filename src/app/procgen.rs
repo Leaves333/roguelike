@@ -1,6 +1,6 @@
+use rand::Rng;
 use rand::distr::Distribution;
 use rand::distr::weighted::WeightedIndex;
-use rand::{Rng, random_ratio};
 
 use crate::app::{App, PLAYER};
 use crate::components::Object;
@@ -66,30 +66,93 @@ pub struct DungeonConfig {
     max_rooms: u16,
     room_min_size: u16,
     room_max_size: u16,
-    max_monsters_per_room: u16,
-    max_items_per_room: u16,
     width: u16,
     height: u16,
+    level: u16,
 }
 
 impl DungeonConfig {
+    // default dungeon config. starts at level 1.
     pub fn default() -> Self {
         Self {
             max_rooms: 30,
             room_min_size: 6,
             room_max_size: 10,
-            max_monsters_per_room: 2,
-            max_items_per_room: 2,
             width: 80,
             height: 24,
+            level: 1,
         }
     }
+
+    pub fn set_level(mut self, level: u16) -> Self {
+        self.level = level;
+        self
+    }
+}
+
+struct Transition {
+    level: u16,
+    value: usize,
+}
+
+/// returns a value that depends on level. table specifies what
+/// value occurs after each level, default is 0. assumes that transitions
+/// are sorted by level in the table slice
+fn from_dungeon_level(table: &[Transition], level: u16) -> usize {
+    table
+        .iter()
+        .rev()
+        .find(|transition| level >= transition.level)
+        .map_or(0, |transition| transition.value)
+}
+
+fn monster_table(level: u16) -> Vec<(fn() -> Object, usize)> {
+    let orc_weight = 80;
+    let troll_weight = from_dungeon_level(
+        &[
+            Transition {
+                level: 2,
+                value: 15,
+            },
+            Transition {
+                level: 3,
+                value: 30,
+            },
+            Transition {
+                level: 5,
+                value: 45,
+            },
+            Transition {
+                level: 7,
+                value: 60,
+            },
+        ],
+        level,
+    );
+
+    vec![(entities::orc, orc_weight), (entities::troll, troll_weight)]
+}
+
+fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
+    let potion_weight = 35;
+    let lightning_weight = from_dungeon_level(
+        &[Transition {
+            level: 2,
+            value: 15,
+        }],
+        level,
+    );
+
+    vec![
+        (entities::potion_cure_wounds, potion_weight),
+        (entities::scroll_lightning, lightning_weight),
+    ]
 }
 
 impl App {
     /// replaces the current gamemap for the app with a new one
     pub fn generate_dungeon(&mut self, config: DungeonConfig) {
-        let mut dungeon = GameMap::new(config.width, config.height, Vec::new());
+        let mut dungeon = GameMap::new(config.width, config.height, config.level, Vec::new());
         let mut rooms: Vec<RectangularRoom> = Vec::new();
         dungeon.object_ids.push(PLAYER); // player is currently in this gamemap
 
@@ -128,22 +191,23 @@ impl App {
             }
 
             // loot tables for monsters and items
-            let monsters: Vec<(fn() -> Object, usize)> =
-                vec![(entities::orc, 4), (entities::troll, 1)];
-
-            let items: Vec<(fn() -> Object, usize)> = vec![
-                (entities::potion_cure_wounds, 4),
-                (entities::scroll_lightning, 2),
+            let max_monsters_table = &[
+                Transition { level: 1, value: 2 },
+                Transition { level: 4, value: 3 },
+                Transition { level: 6, value: 4 },
             ];
+            let max_monsters = from_dungeon_level(max_monsters_table, dungeon.level);
 
-            self.place_objects(
-                &new_room,
-                &mut dungeon,
-                &monsters,
-                config.max_monsters_per_room,
-            );
+            let max_items_table = &[
+                Transition { level: 1, value: 1 },
+                Transition { level: 3, value: 2 },
+            ];
+            let max_items = from_dungeon_level(max_items_table, dungeon.level);
 
-            self.place_objects(&new_room, &mut dungeon, &items, config.max_items_per_room);
+            let monsters = monster_table(dungeon.level);
+            let items = item_table(dungeon.level);
+            self.place_objects(&new_room, &mut dungeon, &monsters, max_monsters);
+            self.place_objects(&new_room, &mut dungeon, &items, max_items);
 
             rooms.push(new_room);
         }
@@ -163,7 +227,7 @@ impl App {
         room: &RectangularRoom,
         dungeon: &mut GameMap,
         object_weights: &Vec<(fn() -> Object, usize)>,
-        maximum_objects: u16,
+        maximum_objects: usize,
     ) {
         let mut rng = rand::rng();
         let dist = WeightedIndex::new(object_weights.iter().map(|x| x.1)).unwrap();

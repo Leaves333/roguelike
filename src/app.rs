@@ -17,6 +17,7 @@ mod render;
 mod saving;
 
 pub const PLAYER: usize = 0;
+pub const VIEW_RADIUS: u16 = 8;
 
 #[derive(Serialize, Deserialize)]
 pub struct Log {
@@ -123,20 +124,15 @@ impl App {
         let player = spawn(0, 0, entities::player());
         let objects = ObjectMap::new(player);
 
-        let mut app = Self {
-            // NOTE: this is a dummy gamemap that will get
-            // overriden by app.generate_dungeon() below
-            gamemap: GameMap::new(0, 0, Vec::new()),
+        Self {
+            // NOTE: this is a dummy gamemap that should get overwritten when
+            // loading or creating a new game
+            gamemap: GameMap::new(0, 0, 0, Vec::new()),
 
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
             inventory: Vec::new(),
             log: Log::new(),
-        };
-
-        app.generate_dungeon(DungeonConfig::default());
-        app.update_fov(8);
-
-        app
+        }
     }
 }
