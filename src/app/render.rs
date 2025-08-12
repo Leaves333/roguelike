@@ -477,9 +477,9 @@ impl App {
 
         while index < chars.len() {
             lines.push(Line::from(format!(
-                "({}) {}:\t{}",
+                "({}) {:8} {}",
                 chars[index],
-                slots[index],
+                format!("{}:", slots[index]),
                 {
                     match self.equipment[index] {
                         Some(id) => {
