@@ -187,5 +187,9 @@ pub fn weapon_dagger() -> Object {
         alive,
     )
     .set_item(Item::Equipment)
-    .set_equipment(Equipment { slot: Slot::Weapon })
+    .set_equipment(Equipment {
+        slot: Slot::Weapon,
+        power_bonus: 2,
+        defense_bonus: 0,
+    })
 }

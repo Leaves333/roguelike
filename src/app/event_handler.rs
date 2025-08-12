@@ -7,7 +7,7 @@ use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
 use crate::components::{AIType, Item, Object, Position, RenderStatus, SLOT_ORDERING};
-use crate::engine::{UseResult, take_damage};
+use crate::engine::{UseResult, defense, power, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
@@ -460,6 +460,10 @@ impl App {
             }
         };
 
+        let attacker_power = power(&self, attacker_id);
+        let target_defense = defense(&self, target_id);
+        let damage = (attacker_power - target_defense).max(0) as u16;
+
         let [Some(attacker), Some(target)] = self
             .objects
             .get_contents()
@@ -468,12 +472,7 @@ impl App {
             panic!("invalid ids passed to melee_action()!");
         };
 
-        let attacker_fighter = &attacker.fighter.as_ref().unwrap();
-        let target_fighter = &mut target.fighter.as_mut().unwrap();
-
-        let damage = (attacker_fighter.power - target_fighter.defense).max(0) as u16;
         let attack_desc = format!("{} attacks {}", attacker.name, target.name);
-
         if damage > 0 {
             take_damage(&mut self.objects, &mut self.log, target_id, damage);
             self.log.add(

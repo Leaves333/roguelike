@@ -166,6 +166,6 @@ impl std::fmt::Display for Slot {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Equipment {
     pub slot: Slot,
-    // pub power_bonus: u16,
-    // pub defense_bonus: u16,
+    pub power_bonus: i16,
+    pub defense_bonus: i16,
 }

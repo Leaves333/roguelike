@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
@@ -32,6 +34,70 @@ pub fn get_blocking_object_id(
         }
     }
     return None;
+}
+
+/// returns the true power of an fighter, after factoring in bonuses
+pub fn power(app: &App, id: usize) -> i16 {
+    let obj = app.objects.get(&id).unwrap();
+
+    // return a default of 0 if object has no fighter
+    if obj.fighter.is_none() {
+        return 0;
+    }
+
+    let base_power = obj.fighter.as_ref().unwrap().power;
+    let bonus_power: i16 = match id.cmp(&PLAYER) {
+        Ordering::Equal => {
+            // TODO: equipment calculations
+            let mut bonus: i16 = 0;
+            for id_option in &app.equipment {
+                if id_option.is_none() {
+                    continue;
+                }
+
+                let obj = app.objects.get(id_option.as_ref().unwrap()).unwrap();
+                let equip = obj.equipment.as_ref().unwrap();
+                bonus += equip.power_bonus;
+            }
+
+            bonus
+        }
+        _ => 0,
+    };
+
+    base_power + bonus_power
+}
+
+/// returns the true defense of an fighter, after factoring in bonuses
+pub fn defense(app: &App, id: usize) -> i16 {
+    let obj = app.objects.get(&id).unwrap();
+
+    // return a default of 0 if object has no fighter
+    if obj.fighter.is_none() {
+        return 0;
+    }
+
+    let base_defense = obj.fighter.as_ref().unwrap().defense;
+    let bonus_defense: i16 = match id.cmp(&PLAYER) {
+        Ordering::Equal => {
+            // TODO: equipment calculations
+            let mut bonus: i16 = 0;
+            for id_option in &app.equipment {
+                if id_option.is_none() {
+                    continue;
+                }
+
+                let obj = app.objects.get(id_option.as_ref().unwrap()).unwrap();
+                let equip = obj.equipment.as_ref().unwrap();
+                bonus += equip.defense_bonus;
+            }
+
+            bonus
+        }
+        _ => 0,
+    };
+
+    base_defense + bonus_defense
 }
 
 /// heals an entity for the specified amount
@@ -139,12 +205,7 @@ impl Item {
 
         match self {
             Item::Heal => cast_heal(&mut app.objects, &mut app.log),
-            Item::Lightning => cast_lightning(
-                &mut app.objects,
-                &app.gamemap,
-                &mut app.log,
-                target.unwrap(),
-            ),
+            Item::Lightning => cast_lightning(app, target.unwrap()),
 
             // NOTE: logic for equipping items is in use_item, since removing the equipped item
             // from the inventory requires knowing the index it was stored in
@@ -180,12 +241,7 @@ pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
 }
 
 /// effects of a scroll of lightning. smites a chosen target within line of sight
-pub fn cast_lightning(
-    objects: &mut ObjectMap,
-    gamemap: &GameMap,
-    log: &mut Log,
-    target: Position,
-) -> UseResult {
+pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
     // get all fighters within line of sight, minus the player
 
     // let mut valid_targets = Vec::new();
@@ -208,22 +264,24 @@ pub fn cast_lightning(
     // let mut rng = rand::rng();
     // let target_id = valid_targets.choose(&mut rng).unwrap();
 
-    let target_id = match get_blocking_object_id(objects, gamemap, target) {
+    let target_id = match get_blocking_object_id(&app.objects, &app.gamemap, target) {
         Some(x) => {
             if x == PLAYER {
-                log.add(String::from("Can't target yourself!"), Color::default());
+                app.log
+                    .add(String::from("Can't target yourself!"), Color::default());
                 return UseResult::Cancelled;
             } else {
                 x
             }
         }
         None => {
-            log.add(String::from("No targets there."), Color::default());
+            app.log
+                .add(String::from("No targets there."), Color::default());
             return UseResult::Cancelled;
         }
     };
 
-    let fighter = match &objects.get(&target_id).unwrap().fighter {
+    let fighter = match &app.objects.get(&target_id).unwrap().fighter {
         Some(x) => x,
         None => {
             panic!("trying to cast lightning, but target_id does not have a fighter component!")
@@ -231,19 +289,19 @@ pub fn cast_lightning(
     };
 
     const LIGHTNING_DAMAGE: i16 = 8;
-    let damage = LIGHTNING_DAMAGE - fighter.defense;
+    let damage = LIGHTNING_DAMAGE - power(app, target_id);
 
-    let target_obj = objects.get(&target_id).unwrap();
+    let target_obj = app.objects.get(&target_id).unwrap();
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
 
     if damage > 0 {
-        take_damage(objects, log, target_id, damage as u16);
-        log.add(
+        take_damage(&mut app.objects, &mut app.log, target_id, damage as u16);
+        app.log.add(
             format!("{} for {} damage.", attack_desc, damage),
             Color::LightBlue,
         );
     } else {
-        log.add(
+        app.log.add(
             format!("{} but does no damage.", attack_desc),
             Color::default(),
         );
