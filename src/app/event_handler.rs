@@ -630,8 +630,16 @@ impl App {
 
                 // check if the slot is empty or not
                 if self.equipment[equip_idx].is_some() {
+                    self.log.add(
+                        format!("Already have an item equipped on your {}!", equip.slot),
+                        Color::default(),
+                    );
                     return UseResult::Cancelled;
                 }
+
+                // if equipment slot isn't empty, equip it
+                self.equipment[equip_idx] = Some(self.inventory[inventory_idx]);
+                return UseResult::UsedUp;
             }
         };
 

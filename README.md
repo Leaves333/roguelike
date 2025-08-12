@@ -16,7 +16,7 @@ graphical i'll work on it later...
 
 ## goals
 
-- [ ] make dungeon generation scale with level
+- [x] make dungeon generation scale with level
 - [ ] equipment
 - [ ] redo rendering to be centered
 

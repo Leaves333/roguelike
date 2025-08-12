@@ -9,7 +9,7 @@ use ratatui::{
 
 use super::{App, GameScreen, PLAYER};
 use crate::{
-    components::{Position, RenderStatus, Renderable},
+    components::{Position, RenderStatus, Renderable, SLOT_LENGTH, Slot},
     gamemap::{self, Tile, TileType},
 };
 
@@ -117,7 +117,8 @@ impl App {
             .direction(layout::Direction::Vertical)
             .constraints(vec![
                 layout::Constraint::Percentage(30),
-                layout::Constraint::Percentage(70),
+                layout::Constraint::Percentage(30),
+                layout::Constraint::Percentage(40),
             ])
             .split(horizontal_split[0]);
 
@@ -152,8 +153,12 @@ impl App {
         match self.game_screen {
             GameScreen::Menu => {}
             _ => {
-                self.render_status(frame, ui_layout[0]);
-                self.render_inventory(frame, ui_layout[1]);
+                let status_area = ui_layout[0];
+                let equipment_area = ui_layout[1];
+                let inventory_area = ui_layout[2];
+                self.render_status(frame, status_area);
+                self.render_equipment(frame, equipment_area);
+                self.render_inventory(frame, inventory_area);
             }
         }
 
@@ -454,6 +459,46 @@ impl App {
 
         frame.render_widget(health_label, label_area);
         frame.render_widget(health_gauge, gauge_area);
+    }
+
+    fn render_equipment(&self, frame: &mut Frame, area: Rect) {
+        let block = Block::default().title("equipment").borders(Borders::ALL);
+        frame.render_widget(block, area);
+
+        let mut lines: Vec<Line> = Vec::new();
+
+        let chars = ["A", "B", "C"];
+        let slots = [Slot::Weapon, Slot::Head, Slot::Body];
+        let mut index = 0;
+
+        // check: assert that length of arrays here matches up with number of slots
+        assert_eq!(chars.len(), slots.len());
+        assert_eq!(chars.len(), SLOT_LENGTH);
+
+        while index < chars.len() {
+            lines.push(Line::from(format!(
+                "({}) {}:\t{}",
+                chars[index],
+                slots[index],
+                {
+                    match self.equipment[index] {
+                        Some(id) => {
+                            let obj = self.objects.get(&id).unwrap();
+                            obj.name.clone()
+                        }
+                        None => String::from("(empty)"),
+                    }
+                }
+            )));
+            index += 1;
+        }
+
+        let paragraph = Paragraph::new(lines);
+        let inner_area = area.inner(Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+        frame.render_widget(paragraph, inner_area);
     }
 
     fn render_inventory(&self, frame: &mut Frame, area: Rect) {

@@ -147,6 +147,22 @@ pub enum Slot {
 }
 pub const SLOT_LENGTH: usize = 3;
 
+impl std::fmt::Display for Slot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Slot::Weapon => {
+                write!(f, "Weapon")
+            }
+            Slot::Head => {
+                write!(f, "Head")
+            }
+            Slot::Body => {
+                write!(f, "Body")
+            }
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Equipment {
     pub slot: Slot,
