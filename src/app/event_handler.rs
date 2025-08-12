@@ -200,39 +200,6 @@ impl App {
                 }
             }
             GameScreen::Main => {
-                match key.modifiers {
-                    KeyModifiers::ALT => match key.code {
-                        // unequip item from equipment
-                        KeyCode::Char(c @ 'a'..='c') => {
-                            let index = c as usize - 'a' as usize;
-                            match self.equipment[index] {
-                                Some(id) => {
-                                    // check we have enough space in inventory to unequip the item
-                                    if self.inventory.len() >= INVENTORY_SIZE {
-                                        self.log.add(
-                                            "Not enough space in inventory.",
-                                            Color::default(),
-                                        );
-                                        return PlayerAction::DidntTakeTurn;
-                                    }
-
-                                    // unequip and move to inventory
-                                    self.inventory.push(id);
-                                    self.equipment[index] = None;
-                                }
-                                None => {
-                                    self.log.add(
-                                        format!("No item equipped on {}", SLOT_ORDERING[index]),
-                                        Color::default(),
-                                    );
-                                }
-                            }
-                        }
-                        _ => {}
-                    },
-                    _ => {}
-                }
-
                 match key.code {
                     // use item from inventory: '1' to '9' and '0'
                     KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
@@ -257,6 +224,31 @@ impl App {
                                     UseResult::Equipped => PlayerAction::TookTurn,
                                     UseResult::Cancelled => PlayerAction::DidntTakeTurn,
                                 };
+                            }
+                        }
+                    }
+
+                    // unequip item from equipment
+                    KeyCode::Char(c @ 'A'..='C') => {
+                        let index = c as usize - 'A' as usize;
+                        match self.equipment[index] {
+                            Some(id) => {
+                                // check we have enough space in inventory to unequip the item
+                                if self.inventory.len() >= INVENTORY_SIZE {
+                                    self.log
+                                        .add("Not enough space in inventory.", Color::default());
+                                    return PlayerAction::DidntTakeTurn;
+                                }
+
+                                // unequip and move to inventory
+                                self.inventory.push(id);
+                                self.equipment[index] = None;
+                            }
+                            None => {
+                                self.log.add(
+                                    format!("No item equipped on {}.", SLOT_ORDERING[index]),
+                                    Color::default(),
+                                );
                             }
                         }
                     }
