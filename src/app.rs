@@ -1,11 +1,10 @@
 use std::{collections::HashMap, usize};
 
-use procgen::DungeonConfig;
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    components::{Object, Position, SLOT_LENGTH},
+    components::{Object, Position, SLOT_ORDERING},
     engine::TargetingMode,
     entities::{self, spawn},
     gamemap::GameMap,
@@ -18,6 +17,7 @@ mod saving;
 
 pub const PLAYER: usize = 0;
 pub const VIEW_RADIUS: u16 = 8;
+pub const INVENTORY_SIZE: usize = 10;
 
 #[derive(Serialize, Deserialize)]
 pub struct Log {
@@ -133,7 +133,7 @@ impl App {
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
             inventory: Vec::new(),
-            equipment: vec![None; SLOT_LENGTH],
+            equipment: vec![None; SLOT_ORDERING.len()],
             log: Log::new(),
         }
     }

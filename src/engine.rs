@@ -146,9 +146,8 @@ impl Item {
                 target.unwrap(),
             ),
 
-            // NOTE: logic for equipping items is in the event handler,
-            // since removing the equipped item from the inventory requires
-            // knowing the index it was stored in
+            // NOTE: logic for equipping items is in use_item, since removing the equipped item
+            // from the inventory requires knowing the index it was stored in
             Item::Equipment => UseResult::Equipped,
         }
     }

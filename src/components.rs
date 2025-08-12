@@ -145,7 +145,7 @@ pub enum Slot {
     Head = 1,
     Body = 2,
 }
-pub const SLOT_LENGTH: usize = 3;
+pub const SLOT_ORDERING: [Slot; 3] = [Slot::Weapon, Slot::Head, Slot::Body];
 
 impl std::fmt::Display for Slot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

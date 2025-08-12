@@ -6,14 +6,14 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, Item, Object, Position, RenderStatus};
+use crate::components::{AIType, Item, Object, Position, RenderStatus, SLOT_ORDERING};
 use crate::engine::{UseResult, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::procgen::DungeonConfig;
-use super::{App, GameScreen, PLAYER, VIEW_RADIUS};
+use super::{App, GameScreen, INVENTORY_SIZE, PLAYER, VIEW_RADIUS};
 
 enum InputDirection {
     Up,
@@ -200,6 +200,39 @@ impl App {
                 }
             }
             GameScreen::Main => {
+                match key.modifiers {
+                    KeyModifiers::ALT => match key.code {
+                        // unequip item from equipment
+                        KeyCode::Char(c @ 'a'..='c') => {
+                            let index = c as usize - 'a' as usize;
+                            match self.equipment[index] {
+                                Some(id) => {
+                                    // check we have enough space in inventory to unequip the item
+                                    if self.inventory.len() >= INVENTORY_SIZE {
+                                        self.log.add(
+                                            "Not enough space in inventory.",
+                                            Color::default(),
+                                        );
+                                        return PlayerAction::DidntTakeTurn;
+                                    }
+
+                                    // unequip and move to inventory
+                                    self.inventory.push(id);
+                                    self.equipment[index] = None;
+                                }
+                                None => {
+                                    self.log.add(
+                                        format!("No item equipped on {}", SLOT_ORDERING[index]),
+                                        Color::default(),
+                                    );
+                                }
+                            }
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+
                 match key.code {
                     // use item from inventory: '1' to '9' and '0'
                     KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
@@ -556,7 +589,7 @@ impl App {
 
     /// moves and item from the gamemap into the player inventory based on object id
     fn pick_item_up(&mut self, id: usize) {
-        if self.inventory.len() >= 10 {
+        if self.inventory.len() >= INVENTORY_SIZE {
             self.log
                 .add(format!("Cannot hold that many items."), Color::default());
         } else {
@@ -639,7 +672,9 @@ impl App {
 
                 // if equipment slot isn't empty, equip it
                 self.equipment[equip_idx] = Some(self.inventory[inventory_idx]);
-                return UseResult::UsedUp;
+
+                // remove equipped item from inventory
+                self.inventory.remove(inventory_idx);
             }
         };
 

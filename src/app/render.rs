@@ -9,7 +9,7 @@ use ratatui::{
 
 use super::{App, GameScreen, PLAYER};
 use crate::{
-    components::{Position, RenderStatus, Renderable, SLOT_LENGTH, Slot},
+    components::{Position, RenderStatus, Renderable, SLOT_ORDERING},
     gamemap::{self, Tile, TileType},
 };
 
@@ -468,18 +468,17 @@ impl App {
         let mut lines: Vec<Line> = Vec::new();
 
         let chars = ["A", "B", "C"];
-        let slots = [Slot::Weapon, Slot::Head, Slot::Body];
         let mut index = 0;
 
-        // check: assert that length of arrays here matches up with number of slots
-        assert_eq!(chars.len(), slots.len());
-        assert_eq!(chars.len(), SLOT_LENGTH);
+        // check: assert that the char array for equipment slot labels matches up with the actual
+        // number of slots
+        assert_eq!(chars.len(), SLOT_ORDERING.len());
 
         while index < chars.len() {
             lines.push(Line::from(format!(
                 "({}) {:8} {}",
                 chars[index],
-                format!("{}:", slots[index]),
+                format!("{}:", SLOT_ORDERING[index]),
                 {
                     match self.equipment[index] {
                         Some(id) => {
