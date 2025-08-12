@@ -145,14 +145,13 @@ impl Item {
                 &mut app.log,
                 target.unwrap(),
             ),
-            Item::Equipment => equip(app),
+
+            // NOTE: logic for equipping items is in the event handler,
+            // since removing the equipped item from the inventory requires
+            // knowing the index it was stored in
+            Item::Equipment => UseResult::Equipped,
         }
     }
-}
-
-// equips an item
-pub fn equip(app: &mut App) -> UseResult {
-    todo!()
 }
 
 /// effects of a potion of healing. heals the player

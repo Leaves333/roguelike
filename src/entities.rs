@@ -1,7 +1,8 @@
 // this file contains a list of spawnable entities
 
 use crate::components::{
-    AIType, DeathCallback, Fighter, Item, Object, RenderLayer, RenderStatus, Renderable,
+    AIType, DeathCallback, Equipment, Fighter, Item, Object, RenderLayer, RenderStatus, Renderable,
+    Slot,
 };
 use ratatui::style::Color;
 
@@ -163,4 +164,28 @@ pub fn scroll_lightning() -> Object {
         alive,
     )
     .set_item(Item::Lightning)
+}
+
+pub fn weapon_dagger() -> Object {
+    let name = String::from("dagger");
+    let renderable = Renderable {
+        glyph: '(',
+        fg: Color::default(),
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Equipment)
+    .set_equipment(Equipment { slot: Slot::Weapon })
 }
