@@ -17,8 +17,12 @@ graphical i'll work on it later...
 ## goals
 
 - [x] make dungeon generation scale with level
-- [ ] equipment
+- [x] equipment
 - [ ] redo rendering to be centered
+- [ ] better turn and action system
+- [ ] display player stats on left
+- [ ] implement more targeting methods
+- [ ] work on adding content and game balance
 
 ## ideas:
 

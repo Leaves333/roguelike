@@ -281,7 +281,7 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
         }
     };
 
-    let fighter = match &app.objects.get(&target_id).unwrap().fighter {
+    let _fighter = match &app.objects.get(&target_id).unwrap().fighter {
         Some(x) => x,
         None => {
             panic!("trying to cast lightning, but target_id does not have a fighter component!")
