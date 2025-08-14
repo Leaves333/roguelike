@@ -242,11 +242,35 @@ impl App {
             horizontal: 1,
             vertical: 1,
         });
+
+        let center = Position {
+            x: inner_area.width / 2,
+            y: inner_area.height / 2,
+        };
+        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
+                // compute x and y relative to player position
+                let target_x = match (center.x + x).checked_sub(player_pos.x) {
+                    Some(x) => x,
+                    None => {
+                        continue;
+                    }
+                };
+                let target_y = match (center.y + y).checked_sub(player_pos.y) {
+                    Some(y) => y,
+                    None => {
+                        continue;
+                    }
+                };
+
                 let tile = self.gamemap.get_ref(x, y);
                 let ch = CharWidget {
-                    position: Position { x, y },
+                    position: Position {
+                        x: target_x,
+                        y: target_y,
+                    },
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
                             tile.light.clone()
@@ -258,6 +282,70 @@ impl App {
                     },
                 };
                 frame.render_widget(ch, inner_area);
+            }
+        }
+    }
+
+    /// render all objects in the gamemap to screen
+    fn render_entities(&self, frame: &mut Frame, area: Rect) {
+        let block = Block::default().title("world").borders(Borders::ALL);
+        frame.render_widget(block, area);
+        let inner_area = area.inner(Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+
+        let center = Position {
+            x: inner_area.width / 2,
+            y: inner_area.height / 2,
+        };
+        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+
+        let mut indices_to_draw = self.gamemap.object_ids.clone();
+        indices_to_draw.sort_by(|a, b| {
+            let obj_a = self.objects.get(&a).unwrap();
+            let obj_b = self.objects.get(&b).unwrap();
+            obj_a.render_layer.cmp(&obj_b.render_layer)
+        });
+
+        for obj in indices_to_draw
+            .iter()
+            .map(|id| self.objects.get(id).unwrap())
+        {
+            let obj_pos = &obj.pos;
+            let renderable = &obj.renderable;
+
+            // compute x and y relative to player position
+            let x = match (center.x + obj_pos.x).checked_sub(player_pos.x) {
+                Some(x) => x,
+                None => {
+                    continue;
+                }
+            };
+            let y = match (center.y + obj_pos.y).checked_sub(player_pos.y) {
+                Some(y) => y,
+                None => {
+                    continue;
+                }
+            };
+
+            let ch = CharWidget {
+                position: Position { x, y },
+                renderable: renderable.clone(),
+            };
+
+            match obj.render_status {
+                RenderStatus::Hide => {}
+                RenderStatus::ShowInFOV => {
+                    if self.gamemap.is_visible(obj_pos.x, obj_pos.y) {
+                        frame.render_widget(ch, inner_area);
+                    }
+                }
+                RenderStatus::ShowInExplored => {
+                    if self.gamemap.is_explored(obj_pos.x, obj_pos.y) {
+                        frame.render_widget(ch, inner_area);
+                    }
+                }
             }
         }
     }
@@ -348,51 +436,6 @@ impl App {
         }
 
         formatted
-    }
-
-    /// render all objects in the gamemap to screen
-    fn render_entities(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default().title("world").borders(Borders::ALL);
-        frame.render_widget(block, area);
-        let inner_area = area.inner(Margin {
-            horizontal: 1,
-            vertical: 1,
-        });
-
-        let mut indices_to_draw = self.gamemap.object_ids.clone();
-        indices_to_draw.sort_by(|a, b| {
-            let obj_a = self.objects.get(&a).unwrap();
-            let obj_b = self.objects.get(&b).unwrap();
-            obj_a.render_layer.cmp(&obj_b.render_layer)
-        });
-
-        for obj in indices_to_draw
-            .iter()
-            .map(|id| self.objects.get(id).unwrap())
-        {
-            let position = &obj.pos;
-            let renderable = &obj.renderable;
-
-            let ch = CharWidget {
-                position: position.clone(),
-                renderable: renderable.clone(),
-            };
-
-            match obj.render_status {
-                RenderStatus::Hide => {}
-                RenderStatus::ShowInFOV => {
-                    // render only visible entities
-                    if self.gamemap.is_visible(position.x, position.y) {
-                        frame.render_widget(ch, inner_area);
-                    }
-                }
-                RenderStatus::ShowInExplored => {
-                    if self.gamemap.is_explored(position.x, position.y) {
-                        frame.render_widget(ch, inner_area);
-                    }
-                }
-            }
-        }
     }
 
     /// renders the text in the log
