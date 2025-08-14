@@ -200,8 +200,26 @@ impl App {
                 }
             }
             GameScreen::Main => {
+                match key.modifiers {
+                    KeyModifiers::ALT => {
+                        match key.code {
+                            // drop item from inventory
+                            KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
+                                let index = match c {
+                                    '1'..='9' => c as usize - '1' as usize,
+                                    '0' => 9,
+                                    _ => unreachable!(),
+                                };
+                                self.drop_item_from_inventory(index);
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+
                 match key.code {
-                    // use item from inventory: '1' to '9' and '0'
+                    // use item from inventory
                     KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
                         let index = match c {
                             '1'..='9' => c as usize - '1' as usize,
@@ -603,6 +621,25 @@ impl App {
                 }
             }
         }
+    }
+
+    /// drop an item back onto the ground
+    fn drop_item_from_inventory(&mut self, inventory_idx: usize) {
+        if inventory_idx > self.inventory.len() {
+            self.log.add("No item to drop.", Color::default());
+            return;
+        }
+
+        // reshow the item on the map, and set its position to the player's position
+        let player_pos = self.objects.get(&PLAYER).unwrap().pos.clone();
+        let item_id = self.inventory[inventory_idx];
+        let item_obj = self.objects.get_mut(&item_id).unwrap();
+
+        self.gamemap.object_ids.push(item_id);
+        item_obj.pos = player_pos;
+        item_obj.render_status = RenderStatus::ShowInFOV;
+
+        self.inventory.remove(inventory_idx);
     }
 
     /// returns the item for a given index in the inventory
