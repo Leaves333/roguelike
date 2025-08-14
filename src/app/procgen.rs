@@ -134,7 +134,8 @@ fn monster_table(level: u16) -> Vec<(fn() -> Object, usize)> {
 }
 
 fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
-    let potion_weight = 35;
+    let potion_weight = 30;
+
     let lightning_weight = from_dungeon_level(
         &[Transition {
             level: 2,
@@ -142,12 +143,21 @@ fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
         }],
         level,
     );
-    let weapon_weight = 10;
+
+    let dagger_weight = 5;
+    let longsword_weight = from_dungeon_level(&[Transition { level: 4, value: 5 }], level);
+    let helmet_weight = from_dungeon_level(&[Transition { level: 3, value: 5 }], level);
+    let leather_weight = from_dungeon_level(&[Transition { level: 2, value: 5 }], level);
+    let plate_weight = from_dungeon_level(&[Transition { level: 5, value: 5 }], level);
 
     vec![
         (entities::potion_cure_wounds, potion_weight),
         (entities::scroll_lightning, lightning_weight),
-        (entities::weapon_dagger, weapon_weight),
+        (entities::weapon_dagger, dagger_weight),
+        (entities::weapon_longsword, longsword_weight),
+        (entities::helmet, helmet_weight),
+        (entities::leather_armor, leather_weight),
+        (entities::plate_armor, plate_weight),
     ]
 }
 

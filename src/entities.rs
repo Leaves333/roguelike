@@ -193,3 +193,115 @@ pub fn weapon_dagger() -> Object {
         defense_bonus: 0,
     })
 }
+
+pub fn weapon_longsword() -> Object {
+    let name = String::from("longsword");
+    let renderable = Renderable {
+        glyph: '(',
+        fg: Color::Blue,
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Equipment)
+    .set_equipment(Equipment {
+        slot: Slot::Weapon,
+        power_bonus: 4,
+        defense_bonus: 0,
+    })
+}
+
+pub fn helmet() -> Object {
+    let name = String::from("helmet");
+    let renderable = Renderable {
+        glyph: ']',
+        fg: Color::default(),
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Equipment)
+    .set_equipment(Equipment {
+        slot: Slot::Head,
+        power_bonus: 0,
+        defense_bonus: 1,
+    })
+}
+
+pub fn leather_armor() -> Object {
+    let name = String::from("leather armor");
+    let renderable = Renderable {
+        glyph: '[',
+        fg: Color::default(),
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Equipment)
+    .set_equipment(Equipment {
+        slot: Slot::Body,
+        power_bonus: 0,
+        defense_bonus: 1,
+    })
+}
+
+pub fn plate_armor() -> Object {
+    let name = String::from("plate armor");
+    let renderable = Renderable {
+        glyph: '[',
+        fg: Color::Blue,
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_item(Item::Equipment)
+    .set_equipment(Equipment {
+        slot: Slot::Body,
+        power_bonus: 0,
+        defense_bonus: 2,
+    })
+}

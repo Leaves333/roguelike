@@ -18,7 +18,7 @@ graphical i'll work on it later...
 
 - [x] make dungeon generation scale with level
 - [x] equipment
-- [ ] redo rendering to be centered
+- [x] redo rendering to be centered
 - [ ] better turn and action system
 - [ ] display player stats on left
 - [ ] implement more targeting methods
