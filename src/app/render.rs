@@ -143,8 +143,40 @@ impl App {
             }
             GameScreen::Examine { cursor } | GameScreen::Targeting { cursor, .. } => {
                 // keep the cursor within bounds of the renderable area
-                cursor.x = cursor.x.min(world_layout[0].width - 3);
-                cursor.y = cursor.y.min(world_layout[0].height - 3);
+                let inner_area = world_layout[0].inner(Margin {
+                    horizontal: 1,
+                    vertical: 1,
+                });
+                let center = Position {
+                    x: inner_area.width / 2,
+                    y: inner_area.height / 2,
+                };
+                let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+
+                match (player_pos.x + inner_area.width).checked_sub(center.x) {
+                    Some(x) => {
+                        cursor.x = cursor.x.min(x);
+                    }
+                    None => {}
+                }
+                match player_pos.x.checked_sub(center.x) {
+                    Some(x) => {
+                        cursor.x = cursor.x.max(x);
+                    }
+                    None => {}
+                }
+                match (player_pos.y + inner_area.height).checked_sub(center.y) {
+                    Some(y) => {
+                        cursor.y = cursor.y.min(y);
+                    }
+                    None => {}
+                }
+                match player_pos.y.checked_sub(center.y) {
+                    Some(y) => {
+                        cursor.y = cursor.y.max(y);
+                    }
+                    None => {}
+                }
             }
             _ => {}
         }
@@ -267,11 +299,27 @@ impl App {
 
     /// render tiles in gamemap
     fn render_tiles(&self, frame: &mut Frame, area: layout::Rect) {
-        let inner_area = area.inner(layout::Margin {
+        let inner_area = area.inner(Margin {
             horizontal: 1,
             vertical: 1,
         });
 
+        // cover inner area in dark tiles
+        for x in 0..area.width {
+            for y in 0..area.height {
+                let ch = CharWidget {
+                    position: Position { x, y },
+                    renderable: Renderable {
+                        glyph: '.',
+                        fg: Color::Black,
+                        bg: Color::Reset,
+                    },
+                };
+                frame.render_widget(ch, inner_area);
+            }
+        }
+
+        // render the tiles in the gamemap
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
                 let target_pos = match self.player_relative_coords(inner_area, Position { x, y }) {
@@ -307,12 +355,6 @@ impl App {
             horizontal: 1,
             vertical: 1,
         });
-
-        let center = Position {
-            x: inner_area.width / 2,
-            y: inner_area.height / 2,
-        };
-        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
 
         let mut indices_to_draw = self.gamemap.object_ids.clone();
         indices_to_draw.sort_by(|a, b| {
@@ -365,18 +407,28 @@ impl App {
         });
 
         // swap the fg and bg colors of the cell the cursor is highlighting
+        let offset_pos = match self.player_relative_coords(
+            inner_area,
+            Position {
+                x: cursor.x,
+                y: cursor.y,
+            },
+        ) {
+            Some(pos) => pos,
+            None => {
+                panic!("um.");
+            }
+        };
+        let coords = (inner_area.x + offset_pos.x, inner_area.y + offset_pos.y);
         let buf = frame.buffer_mut();
-        let coords = (cursor.x + inner_area.x, cursor.y + inner_area.y);
         let cell = &mut buf[coords];
 
         let (fg, bg) = (cell.fg, cell.bg);
-
         if bg == Color::Reset {
             cell.set_fg(Color::Black);
         } else {
             cell.set_fg(bg);
         }
-
         if fg == Color::default() {
             cell.set_bg(Color::Gray);
         } else {
