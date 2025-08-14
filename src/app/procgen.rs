@@ -142,7 +142,7 @@ fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
         }],
         level,
     );
-    let weapon_weight = 1000;
+    let weapon_weight = 10;
 
     vec![
         (entities::potion_cure_wounds, potion_weight),

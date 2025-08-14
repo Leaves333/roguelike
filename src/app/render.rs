@@ -236,6 +236,35 @@ impl App {
         frame.render_widget(instruction_paragraph, instruction_area);
     }
 
+    /// computes offset x and y relative to the player's position and the center of the area
+    /// used for rendering objects to the worldmap
+    fn player_relative_coords(&self, area: Rect, obj_pos: Position) -> Option<Position> {
+        let center = Position {
+            x: area.width / 2,
+            y: area.height / 2,
+        };
+        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+
+        let x = match (center.x + obj_pos.x).checked_sub(player_pos.x) {
+            Some(x) => x,
+            None => {
+                return None;
+            }
+        };
+        let y = match (center.y + obj_pos.y).checked_sub(player_pos.y) {
+            Some(y) => y,
+            None => {
+                return None;
+            }
+        };
+
+        if x > area.width || y > area.height {
+            None
+        } else {
+            Some(Position { x, y })
+        }
+    }
+
     /// render tiles in gamemap
     fn render_tiles(&self, frame: &mut Frame, area: layout::Rect) {
         let inner_area = area.inner(layout::Margin {
@@ -243,23 +272,10 @@ impl App {
             vertical: 1,
         });
 
-        let center = Position {
-            x: inner_area.width / 2,
-            y: inner_area.height / 2,
-        };
-        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
-
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
-                // compute x and y relative to player position
-                let target_x = match (center.x + x).checked_sub(player_pos.x) {
-                    Some(x) => x,
-                    None => {
-                        continue;
-                    }
-                };
-                let target_y = match (center.y + y).checked_sub(player_pos.y) {
-                    Some(y) => y,
+                let target_pos = match self.player_relative_coords(inner_area, Position { x, y }) {
+                    Some(pos) => pos,
                     None => {
                         continue;
                     }
@@ -267,10 +283,7 @@ impl App {
 
                 let tile = self.gamemap.get_ref(x, y);
                 let ch = CharWidget {
-                    position: Position {
-                        x: target_x,
-                        y: target_y,
-                    },
+                    position: target_pos,
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
                             tile.light.clone()
@@ -315,22 +328,15 @@ impl App {
             let obj_pos = &obj.pos;
             let renderable = &obj.renderable;
 
-            // compute x and y relative to player position
-            let x = match (center.x + obj_pos.x).checked_sub(player_pos.x) {
-                Some(x) => x,
-                None => {
-                    continue;
-                }
-            };
-            let y = match (center.y + obj_pos.y).checked_sub(player_pos.y) {
-                Some(y) => y,
+            let target_pos = match self.player_relative_coords(inner_area, obj_pos.clone()) {
+                Some(pos) => pos,
                 None => {
                     continue;
                 }
             };
 
             let ch = CharWidget {
-                position: Position { x, y },
+                position: target_pos,
                 renderable: renderable.clone(),
             };
 
