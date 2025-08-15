@@ -10,6 +10,7 @@ use ratatui::{
 use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, RenderStatus, Renderable, SLOT_ORDERING},
+    engine::{defense, power},
     gamemap::{self, Tile, TileType},
 };
 
@@ -532,17 +533,25 @@ impl App {
         frame.render_widget(paragraph, area);
     }
 
-    /// renders healthbar on the left side of the screen
+    /// renders healthbar and stats on the left side of the screen
     fn render_status(&self, frame: &mut Frame, area: Rect) {
         let block = Block::default().title("character").borders(Borders::ALL);
         frame.render_widget(block, area);
 
+        // split into top and bottom area
         let inner_area = area.inner(Margin::new(1, 1));
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(vec![Constraint::Length(2), Constraint::Percentage(100)])
+            .split(inner_area);
+        let gauges_area = layout[0];
+        let stats_area = layout[1];
+
+        // render health bar gauge on top
         let layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Length(12), Constraint::Percentage(100)])
-            .split(inner_area);
-
+            .split(gauges_area);
         let label_area = layout[0];
         let gauge_area = layout[1];
 
@@ -560,6 +569,14 @@ impl App {
 
         frame.render_widget(health_label, label_area);
         frame.render_widget(health_gauge, gauge_area);
+
+        // render player stats on bottom
+        let lines: Vec<Line> = vec![
+            Line::from(format!("ATK {}", power(self, PLAYER))),
+            Line::from(format!("DEF {}", defense(self, PLAYER))),
+        ];
+        let paragraph = Paragraph::new(lines);
+        frame.render_widget(paragraph, stats_area);
     }
 
     fn render_equipment(&self, frame: &mut Frame, area: Rect) {
