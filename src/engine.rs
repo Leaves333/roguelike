@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
@@ -98,6 +99,14 @@ pub fn defense(app: &App, id: usize) -> i16 {
     };
 
     base_defense + bonus_defense
+}
+
+/// returns the amount of damage an attack does.
+/// note: defense blocks a random amount of damage between def/2 and def
+pub fn damage(power: i16, defense: i16) -> i16 {
+    let mut rng = rand::rng();
+    let mitigated_damage = rng.random_range((defense / 2)..=defense);
+    return power.saturating_sub(mitigated_damage).max(0);
 }
 
 /// heals an entity for the specified amount
@@ -289,15 +298,20 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
     };
 
     const LIGHTNING_DAMAGE: i16 = 8;
-    let damage = LIGHTNING_DAMAGE - power(app, target_id);
+    let damage_dealt = damage(LIGHTNING_DAMAGE, defense(app, target_id));
 
     let target_obj = app.objects.get(&target_id).unwrap();
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
 
-    if damage > 0 {
-        take_damage(&mut app.objects, &mut app.log, target_id, damage as u16);
+    if damage_dealt > 0 {
+        take_damage(
+            &mut app.objects,
+            &mut app.log,
+            target_id,
+            damage_dealt as u16,
+        );
         app.log.add(
-            format!("{} for {} damage.", attack_desc, damage),
+            format!("{} for {} damage.", attack_desc, damage_dealt),
             Color::LightBlue,
         );
     } else {

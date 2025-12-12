@@ -64,8 +64,10 @@ pub fn tunnel_between(start: (u16, u16), end: (u16, u16)) -> Vec<(u16, u16)> {
 
 pub struct DungeonConfig {
     max_rooms: u16,
-    room_min_size: u16,
-    room_max_size: u16,
+    room_min_width: u16,
+    room_max_width: u16,
+    room_min_height: u16,
+    room_max_height: u16,
     width: u16,
     height: u16,
     level: u16,
@@ -75,9 +77,11 @@ impl DungeonConfig {
     // default dungeon config. starts at level 1.
     pub fn default() -> Self {
         Self {
-            max_rooms: 30,
-            room_min_size: 6,
-            room_max_size: 10,
+            max_rooms: 200,
+            room_min_width: 7,
+            room_max_width: 25,
+            room_min_height: 4,
+            room_max_height: 7,
             width: 80,
             height: 24,
             level: 1,
@@ -170,8 +174,8 @@ impl App {
 
         let mut rng = rand::rng();
         for _ in 0..config.max_rooms {
-            let room_width = rng.random_range(config.room_min_size..=config.room_max_size);
-            let room_height = rng.random_range(config.room_min_size..=config.room_max_size);
+            let room_width = rng.random_range(config.room_min_width..=config.room_max_width);
+            let room_height = rng.random_range(config.room_min_height..=config.room_max_height);
 
             let x = rng.random_range(0..dungeon.width - room_width);
             let y = rng.random_range(0..dungeon.height - room_height);
