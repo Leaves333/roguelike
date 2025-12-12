@@ -1,4 +1,8 @@
-use std::{collections::HashMap, usize};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashMap},
+    usize,
+};
 
 use ratatui::style::Style;
 use serde::{Deserialize, Serialize};
@@ -93,15 +97,41 @@ impl ObjectMap {
     }
 }
 
+/// struct for the priority queue that decides which object id should act next
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub struct Action {
+    time: usize, // time that the action should be performed
+    id: usize,   // id of object that should take an action
+}
+
+impl Ord for Action {
+    fn cmp(&self, other: &Self) -> Ordering {
+        return self
+            .time
+            .cmp(&other.time)
+            .then_with(|| self.id.cmp(&other.id));
+    }
+}
+
+impl PartialOrd for Action {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+pub struct AppState {}
+
 pub struct App {
     pub gamemap: GameMap,
     pub game_screen: GameScreen,
     pub objects: ObjectMap,
+    pub action_queue: BinaryHeap<Action>,
     pub inventory: Vec<usize>,
     pub equipment: Vec<Option<usize>>,
     pub log: Log,
 }
 
+/// a singleton enum describing the current screen to display
 pub enum GameScreen {
     /// the main menu
     Menu,
@@ -132,6 +162,7 @@ impl App {
 
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
+            action_queue: BinaryHeap::new(),
             inventory: Vec::new(),
             equipment: vec![None; SLOT_ORDERING.len()],
             log: Log::new(),
