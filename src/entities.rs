@@ -1,8 +1,8 @@
 // this file contains a list of spawnable entities
 
 use crate::components::{
-    AIType, DeathCallback, Equipment, Fighter, Item, Object, RenderLayer, RenderStatus, Renderable,
-    Slot,
+    AIType, DeathCallback, Equipment, Fighter, Item, MeleeAIData, Object, RenderLayer,
+    RenderStatus, Renderable, Slot,
 };
 use ratatui::style::Color;
 
@@ -88,7 +88,7 @@ pub fn orc() -> Object {
         let power = 2;
         Fighter::new(max_hp, defense, power, DeathCallback::Monster)
     })
-    .set_ai(AIType::Melee)
+    .set_ai(AIType::Melee(MeleeAIData::new()))
 }
 
 pub fn troll() -> Object {
@@ -117,7 +117,7 @@ pub fn troll() -> Object {
         let power = 4;
         Fighter::new(max_hp, defense, power, DeathCallback::Monster)
     })
-    .set_ai(AIType::Melee)
+    .set_ai(AIType::Melee(MeleeAIData::new()))
 }
 
 pub fn potion_cure_wounds() -> Object {

@@ -6,7 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, Item, Object, Position, RenderStatus, SLOT_ORDERING};
+use crate::components::{AIType, Item, MeleeAIData, Object, Position, RenderStatus, SLOT_ORDERING};
 use crate::engine::{UseResult, defense, power, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
@@ -398,7 +398,7 @@ impl App {
 
             if let Some(ai_type) = &obj.ai {
                 match ai_type {
-                    AIType::Melee => {
+                    AIType::Melee(_) => {
                         self.handle_melee_ai(id.clone());
                     }
                 }
@@ -407,6 +407,7 @@ impl App {
     }
 
     /// makes a monster act according to melee ai
+    /// assumes that said monster has an MeleeAI component
     fn handle_melee_ai(&mut self, id: usize) {
         let [Some(player), Some(monster)] =
             self.objects.get_contents().get_disjoint_mut([&PLAYER, &id])
@@ -414,11 +415,17 @@ impl App {
             panic!("invalid ids while handling melee ai!")
         };
 
-        // let out_of_range = monster.pos.x.abs_diff(player.pos.x) > VIEW_RADIUS
-        //     || monster.pos.y.abs_diff(player.pos.y) > VIEW_RADIUS;
-        // if out_of_range {
-        //     return;
-        // }
+        let ai_data: &mut MeleeAIData = match &mut monster.ai {
+            None => {
+                panic!("handle_melee_ai called on object with no AI component!")
+            }
+            Some(ai_type) => match ai_type {
+                AIType::Melee(data) => data,
+                _ => {
+                    panic!("handle_melee_ai called on object with a non-melee AI type!")
+                }
+            },
+        };
 
         // NOTE: rework los algorithm later, for now assume it is symmetric
         if !self.gamemap.is_visible(monster.pos.x, monster.pos.y) {

@@ -39,11 +39,11 @@ pub enum RenderLayer {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Object {
-    pub name: String,
-    pub pos: Position,
-    pub renderable: Renderable,
-    pub render_status: RenderStatus,
-    pub render_layer: RenderLayer,
+    pub name: String,                // name of this object
+    pub pos: Position,               // where object is located
+    pub renderable: Renderable,      // how this object looks on the map
+    pub render_status: RenderStatus, // rules on how we should render this object
+    pub render_layer: RenderLayer,   // priority on when to render this object
     pub blocks_movement: bool,
     pub alive: bool,
     pub fighter: Option<Fighter>,
@@ -98,6 +98,7 @@ impl Object {
     }
 }
 
+/// component for objects with health that can be killed
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Fighter {
     pub max_hp: u16,
@@ -121,7 +122,23 @@ impl Fighter {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AIType {
-    Melee,
+    Melee(MeleeAIData),
+    Ranged,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MeleeAIData {
+    target: Option<usize>,         // id of which object this monster is targeting
+    last_seen_time: Option<usize>, // when this monster last saw its target
+}
+
+impl MeleeAIData {
+    pub fn new() -> Self {
+        MeleeAIData {
+            target: None,
+            last_seen_time: None,
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
