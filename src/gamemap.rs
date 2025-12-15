@@ -71,7 +71,7 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
     (idx % width, idx / width)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GameMap {
     pub width: u16,
     pub height: u16,

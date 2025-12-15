@@ -1,18 +1,37 @@
 use color_eyre::{Result, eyre::Ok};
 use std::{
-    fs::File,
-    io::{Read, Write},
+    collections::BinaryHeap, fs::File, io::{Read, Write}
 };
 
 use super::{App, Log, ObjectMap};
-use crate::gamemap::GameMap;
+use crate::{app::Action, gamemap::GameMap};
+
+struct SaveData {
+    gamemap: GameMap,
+    objects: ObjectMap,
+    action_queue: BinaryHeap<Action>
+    inventory: Vec<usize>,
+    equipment: Vec<Option<usize>>
+    log: Log
+}
 
 impl App {
     /// saves current game state to a file
     pub fn save_game(&self) -> Result<()> {
-        let save_data = serde_json::to_string(&(
+
+        let save_data = SaveData {
+            gamemap: self.gamemap.clone(),
+            objects: self.objects.clone(),
+            action_queue: self.action_queue.clone(),
+            inventory: self.inventory.clone(),
+            equipment: self.equipment.clone(),
+            log: self.log.clone(),
+        }
+
+        let data_str = serde_json::to_string(&(
             &self.gamemap,
             &self.objects,
+            &self.action_queue,
             &self.inventory,
             &self.equipment,
             &self.log,
@@ -20,7 +39,7 @@ impl App {
 
         let mut file = File::create("savegame")?;
 
-        file.write_all(save_data.as_bytes())?;
+        file.write_all(data_str.as_bytes())?;
 
         Ok(())
     }

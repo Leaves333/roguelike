@@ -98,7 +98,7 @@ impl ObjectMap {
 }
 
 /// struct for the priority queue that decides which object id should act next
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Action {
     time: usize, // time that the action should be performed
     id: usize,   // id of object that should take an action
@@ -118,8 +118,6 @@ impl PartialOrd for Action {
         Some(self.cmp(other))
     }
 }
-
-pub struct AppState {}
 
 pub struct App {
     pub gamemap: GameMap,
