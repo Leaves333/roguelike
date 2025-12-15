@@ -126,10 +126,13 @@ pub enum AIType {
     Ranged,
 }
 
+/// time before melee ai forgets about its target
+pub const MELEE_FORGET_TIME: u64 = 500;
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MeleeAIData {
-    target: Option<usize>,         // id of which object this monster is targeting
-    last_seen_time: Option<usize>, // when this monster last saw its target
+    pub target: Option<usize>, // id of which object this monster is targeting
+    pub last_seen_time: Option<u64>, // when this monster last saw its target
 }
 
 impl MeleeAIData {

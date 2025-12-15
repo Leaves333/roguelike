@@ -6,7 +6,9 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
-use crate::components::{AIType, Item, MeleeAIData, Object, Position, RenderStatus, SLOT_ORDERING};
+use crate::components::{
+    AIType, Item, MELEE_FORGET_TIME, MeleeAIData, Object, Position, RenderStatus, SLOT_ORDERING,
+};
 use crate::engine::{UseResult, defense, power, take_damage};
 use crate::gamemap::coords_to_idx;
 use crate::los;
@@ -401,6 +403,9 @@ impl App {
                     AIType::Melee(_) => {
                         self.handle_melee_ai(id.clone());
                     }
+                    AIType::Ranged => {
+                        todo!()
+                    }
                 }
             }
         }
@@ -409,10 +414,8 @@ impl App {
     /// makes a monster act according to melee ai
     /// assumes that said monster has an MeleeAI component
     fn handle_melee_ai(&mut self, id: usize) {
-        let [Some(player), Some(monster)] =
-            self.objects.get_contents().get_disjoint_mut([&PLAYER, &id])
-        else {
-            panic!("invalid ids while handling melee ai!")
+        let Some(monster) = self.objects.get_contents().get_mut(&id) else {
+            panic!("handle_melee_ai was passed an invalid monster id!")
         };
 
         let ai_data: &mut MeleeAIData = match &mut monster.ai {
@@ -427,10 +430,30 @@ impl App {
             },
         };
 
+        // check if player is in line of sight
         // NOTE: rework los algorithm later, for now assume it is symmetric
-        if !self.gamemap.is_visible(monster.pos.x, monster.pos.y) {
-            return;
+        if self.gamemap.is_visible(monster.pos.x, monster.pos.y) {
+            ai_data.target = Some(PLAYER);
+            ai_data.last_seen_time = Some(self.time);
         }
+
+        // forget the target if we haven't seen it recently
+        match ai_data.last_seen_time {
+            Some(seen_time) => {
+                if seen_time + MELEE_FORGET_TIME <= self.time {
+                    ai_data.target = None;
+                }
+            }
+            None => {}
+        }
+
+        let target = match ai_data.target {
+            Some(id) => id,
+            None => {
+                // do nothing if no current target
+                return;
+            }
+        };
 
         // find path to the player
         let mut costs = Vec::new();
@@ -452,7 +475,12 @@ impl App {
             3,
         );
 
-        let path = pathfinder.path_to((player.pos.x, player.pos.y));
+        let monster_name = monster.name.clone();
+        let Some(target) = self.objects.get(&target) else {
+            panic!("handle_melee_ai: melee AI on {monster_name} had an invalid target id!",);
+        };
+
+        let path = pathfinder.path_to((target.pos.x, target.pos.y));
         if path.len() == 0 {
         } else if path.len() == 1 {
             self.melee_action(id, *path.first().unwrap());

@@ -124,6 +124,7 @@ pub struct App {
     pub game_screen: GameScreen,
     pub objects: ObjectMap,
     pub action_queue: BinaryHeap<Action>,
+    pub time: u64,
     pub inventory: Vec<usize>,
     pub equipment: Vec<Option<usize>>,
     pub log: Log,
@@ -161,6 +162,7 @@ impl App {
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,
             action_queue: BinaryHeap::new(),
+            time: 0,
             inventory: Vec::new(),
             equipment: vec![None; SLOT_ORDERING.len()],
             log: Log::new(),

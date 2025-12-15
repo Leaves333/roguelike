@@ -14,6 +14,7 @@ struct SaveData {
     gamemap: GameMap,
     objects: ObjectMap,
     action_queue: BinaryHeap<Action>,
+    time: u64,
     inventory: Vec<usize>,
     equipment: Vec<Option<usize>>,
     log: Log,
@@ -26,6 +27,7 @@ impl App {
             gamemap: self.gamemap.clone(),
             objects: self.objects.clone(),
             action_queue: self.action_queue.clone(),
+            time: self.time,
             inventory: self.inventory.clone(),
             equipment: self.equipment.clone(),
             log: self.log.clone(),
@@ -48,6 +50,7 @@ impl App {
         self.gamemap = save_data.gamemap;
         self.objects = save_data.objects;
         self.action_queue = save_data.action_queue;
+        self.time = save_data.time;
         self.inventory = save_data.inventory;
         self.equipment = save_data.equipment;
         self.log = save_data.log;
