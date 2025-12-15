@@ -23,7 +23,7 @@ pub const PLAYER: usize = 0;
 pub const VIEW_RADIUS: u16 = 8;
 pub const INVENTORY_SIZE: usize = 10;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Log {
     messages: Vec<(String, Style)>,
 }
@@ -49,7 +49,7 @@ impl Log {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ObjectMap {
     objects: HashMap<usize, Object>,
     next_id: usize,
