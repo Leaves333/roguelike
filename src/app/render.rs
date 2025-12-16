@@ -572,6 +572,7 @@ impl App {
 
         // render player stats on bottom
         let lines: Vec<Line> = vec![
+            Line::from(format!("Time: {:.1}", (self.time as f64) / 100.0)),
             Line::from(format!("ATK {}", power(self, PLAYER))),
             Line::from(format!("DEF {}", defense(self, PLAYER))),
         ];

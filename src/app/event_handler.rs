@@ -61,6 +61,9 @@ impl App {
 
                         // update fov
                         self.update_fov(VIEW_RADIUS);
+
+                        // increment the time
+                        self.time += 100;
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
