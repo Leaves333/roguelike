@@ -56,14 +56,16 @@ impl App {
                 let action = self.handle_keys(key);
                 match action {
                     PlayerAction::TookTurn => {
+                        // increment the time
+                        // NOTE: should change this in the future
+                        // based on how long the player's action took
+                        self.time += 100;
+
                         // monsters act...
                         self.handle_monster_turns();
 
                         // update fov
                         self.update_fov(VIEW_RADIUS);
-
-                        // increment the time
-                        self.time += 100;
                     }
                     PlayerAction::DidntTakeTurn => {
                         // nothing happens
@@ -387,8 +389,17 @@ impl App {
         self.game_screen = GameScreen::Main;
     }
 
-    /// makes all the monsters take a turn
+    /// each monster whose next scheduled action is before the current time acts
     fn handle_monster_turns(&mut self) {
+
+        // loop while there are creatures that should act
+        loop {
+            let top = self.action_queue.pop();
+            let Some(action) = top else {
+                break;
+            }
+        }
+
         for id in self.gamemap.object_ids.clone().iter() {
             let obj = match self.objects.get(id) {
                 None => {
@@ -416,7 +427,8 @@ impl App {
 
     /// makes a monster act according to melee ai
     /// assumes that said monster has an MeleeAI component
-    fn handle_melee_ai(&mut self, id: usize) {
+    /// returns the amount of time that this monster's turn took
+    fn handle_melee_ai(&mut self, id: usize) -> u64 {
         let Some(monster) = self.objects.get_contents().get_mut(&id) else {
             panic!("handle_melee_ai was passed an invalid monster id!")
         };
@@ -454,7 +466,7 @@ impl App {
             Some(id) => id,
             None => {
                 // do nothing if no current target
-                return;
+                return 100;
             }
         };
 
@@ -490,6 +502,9 @@ impl App {
         } else {
             self.move_action(id, *path.first().unwrap());
         }
+
+        // NOTE: by default, all monsters' turns only take 100 time
+        return 100;
     }
 
     /// move an object to (target_x, target_y)
@@ -507,6 +522,7 @@ impl App {
         pos.y = target_y;
     }
 
+    /// returns the amount of time this action took
     fn melee_action(&mut self, attacker_id: usize, (target_x, target_y): (u16, u16)) {
         // check that there is an object to attack
         let target_id = match self.get_blocking_object_id(target_x, target_y) {
