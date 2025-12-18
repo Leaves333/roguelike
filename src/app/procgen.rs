@@ -1,8 +1,9 @@
 use rand::Rng;
 use rand::distr::Distribution;
 use rand::distr::weighted::WeightedIndex;
+use ratatui::style::Color;
 
-use crate::app::{App, PLAYER};
+use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
 use crate::entities::spawn;
 use crate::gamemap::{GameMap, Tile, TileType};
@@ -261,10 +262,27 @@ impl App {
                 None => {}
             }
 
+            // randomly select which object to spawn
             let entity_callback = object_weights[dist.sample(&mut rng)].0;
-            dungeon
-                .object_ids
-                .push(self.objects.add(spawn(x, y, entity_callback())));
+
+            let object = spawn(x, y, entity_callback());
+            let has_ai = object.ai.is_some();
+            let object_id = self.objects.add(object);
+
+            // objects with an AI component should be added into the action queue
+            if has_ai {
+                self.action_queue.push(Action {
+                    time: self.time,
+                    id: object_id,
+                });
+                self.log.add(
+                    format!("added action for object {object_id}"),
+                    Color::default(),
+                );
+            }
+
+            // let this floor of the dungeon own the object
+            dungeon.object_ids.push(object_id);
         }
     }
 }

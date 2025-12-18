@@ -6,6 +6,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
 
+use crate::app::Action;
 use crate::components::{
     AIType, Item, MELEE_FORGET_TIME, MeleeAIData, Object, Position, RenderStatus, SLOT_ORDERING,
 };
@@ -391,38 +392,51 @@ impl App {
 
     /// each monster whose next scheduled action is before the current time acts
     fn handle_monster_turns(&mut self) {
-
-        // loop while there are creatures that should act
         loop {
-            let top = self.action_queue.pop();
+            let top = self.action_queue.peek();
             let Some(action) = top else {
-                break;
-            }
-        }
-
-        for id in self.gamemap.object_ids.clone().iter() {
-            let obj = match self.objects.get(id) {
-                None => {
-                    continue;
-                }
-                Some(x) => x,
+                return;
             };
 
-            if !obj.alive {
-                continue;
+            if action.time > self.time {
+                return;
             }
 
-            if let Some(ai_type) = &obj.ai {
-                match ai_type {
-                    AIType::Melee(_) => {
-                        self.handle_melee_ai(id.clone());
-                    }
-                    AIType::Ranged => {
-                        todo!()
-                    }
-                }
-            }
+            // safe to unwrap here because we checked it was Some earlier
+            let action = self.action_queue.pop().unwrap();
+            self.perform_action(action);
         }
+    }
+
+    /// performs an action for the specified id
+    /// and adds it back into the queue
+    fn perform_action(&mut self, action: Action) {
+        let obj = match self.objects.get(&action.id) {
+            None => {
+                return;
+            }
+            Some(x) => x,
+        };
+
+        if !obj.alive {
+            return;
+        }
+
+        let Some(ai_type) = &obj.ai else {
+            return;
+        };
+
+        let time_taken = match ai_type {
+            AIType::Melee(_) => self.handle_melee_ai(action.id),
+            AIType::Ranged => {
+                todo!()
+            }
+        };
+
+        self.action_queue.push(Action {
+            time: action.time + time_taken,
+            id: action.id,
+        });
     }
 
     /// makes a monster act according to melee ai

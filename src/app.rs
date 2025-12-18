@@ -100,15 +100,18 @@ impl ObjectMap {
 /// struct for the priority queue that decides which object id should act next
 #[derive(Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Action {
-    time: usize, // time that the action should be performed
-    id: usize,   // id of object that should take an action
+    time: u64, // time that the action should be performed
+    id: usize, // id of object that should take an action
 }
 
 impl Ord for Action {
     fn cmp(&self, other: &Self) -> Ordering {
-        return self
+        // BinaryHeap is a max heap
+        // so we reverse the comparison for the time
+        // id doesn't really matter since its just a tiebreak
+        return other
             .time
-            .cmp(&other.time)
+            .cmp(&self.time)
             .then_with(|| self.id.cmp(&other.id));
     }
 }

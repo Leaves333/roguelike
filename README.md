@@ -20,7 +20,7 @@ graphical i'll work on it later...
 - [x] equipment
 - [x] redo rendering to be centered
 - [x] be able to drop items
-- [ ] better turn and action system ???
+- [x] better turn and action system ???
 - [x] display player stats on left
 - [ ] implement more targeting methods
 - [ ] work on adding content and game balance
