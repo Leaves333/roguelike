@@ -624,14 +624,8 @@ impl App {
         );
 
         // loop through each x, y to check visibility
-        let mut visited = HashSet::new();
         for target_x in xlow..=xhigh {
             for target_y in ylow..=yhigh {
-                // already checked this square
-                if visited.contains(&(target_x, target_y)) {
-                    continue;
-                }
-
                 // calculate los path from player to target square
                 let path: Vec<(u16, u16)> = los::bresenham(
                     (player_x.into(), player_y.into()),
@@ -643,7 +637,6 @@ impl App {
 
                 // walk along the path to check for visibility
                 for (x, y) in path {
-                    visited.insert((x, y));
                     if !self.gamemap.get_ref(x, y).transparent {
                         self.gamemap.set_visible(x, y, true);
                         break;
