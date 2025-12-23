@@ -538,16 +538,22 @@ impl App {
         let block = Block::default().title("character").borders(Borders::ALL);
         frame.render_widget(block, area);
 
-        // split into top and bottom area
+        // first split the area vertically
         let inner_area = area.inner(Margin::new(1, 1));
         let layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints(vec![Constraint::Length(2), Constraint::Percentage(100)])
+            .constraints(vec![
+                Constraint::Length(2),
+                Constraint::Length(1),
+                Constraint::Percentage(100),
+            ])
             .split(inner_area);
-        let gauges_area = layout[0];
-        let stats_area = layout[1];
 
-        // render health bar gauge on top
+        let gauges_area = layout[0]; // for health and mana gauges
+        let dungeon_area = layout[1]; // for displaying time and dungeon depth
+        let stats_area = layout[2]; // for displaying player stats
+
+        // render health bar gauge on top most area
         let layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Length(12), Constraint::Percentage(100)])
@@ -570,9 +576,25 @@ impl App {
         frame.render_widget(health_label, label_area);
         frame.render_widget(health_gauge, gauge_area);
 
+        // render dungeon stats in the middle
+
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(dungeon_area);
+        let time_area = layout[0];
+        let depth_area = layout[1];
+
+        let time_line = Line::from(format!("Time: {:.1}", (self.time as f64) / 100.0));
+        let depth_line = Line::from(format!("Depth: {:0>2}", self.gamemap.level));
+        let time_paragraph = Paragraph::new(vec![time_line]);
+        let depth_paragraph = Paragraph::new(vec![depth_line]).right_aligned();
+
+        frame.render_widget(time_paragraph, time_area);
+        frame.render_widget(depth_paragraph, depth_area);
+
         // render player stats on bottom
         let lines: Vec<Line> = vec![
-            Line::from(format!("Time: {:.1}", (self.time as f64) / 100.0)),
             Line::from(format!("ATK {}", power(self, PLAYER))),
             Line::from(format!("DEF {}", defense(self, PLAYER))),
         ];
