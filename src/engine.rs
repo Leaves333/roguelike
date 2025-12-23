@@ -119,8 +119,8 @@ pub fn heal(objects: &mut ObjectMap, id: usize, heal_amount: u16) {
 }
 
 /// applies damage to an entity for the specified amount
-pub fn take_damage(objects: &mut ObjectMap, log: &mut Log, id: usize, damage: u16) {
-    let obj = &mut objects.get_mut(&id).unwrap();
+pub fn take_damage(app: &mut App, id: usize, damage: u16) {
+    let obj = &mut app.objects.get_mut(&id).unwrap();
     let mut death_callback = None;
     if let Some(fighter) = obj.fighter.as_mut() {
         if damage > 0 {
@@ -137,24 +137,23 @@ pub fn take_damage(objects: &mut ObjectMap, log: &mut Log, id: usize, damage: u1
 
     if let Some(callback) = death_callback {
         match callback {
-            DeathCallback::Player => player_death(objects, log),
-            DeathCallback::Monster => monster_death(objects, log, id),
+            DeathCallback::Player => player_death(app),
+            DeathCallback::Monster => monster_death(app, id),
         }
     }
 }
 
-pub fn player_death(objects: &mut ObjectMap, log: &mut Log) {
-    let player = &mut objects.get_mut(&PLAYER).unwrap();
-    log.add(String::from("You died!"), Style::new().italic().red());
-
+pub fn player_death(app: &mut App) {
+    let player = &mut app.objects.get_mut(&PLAYER).unwrap();
     let renderable = &mut player.renderable;
     renderable.glyph = '%';
     renderable.fg = Color::Red;
+
+    app.add_to_log(String::from("You died!"), Style::new().italic().red());
 }
 
-pub fn monster_death(objects: &mut ObjectMap, log: &mut Log, id: usize) {
-    let monster = &mut objects.get_mut(&id).unwrap();
-    log.add(format!("{} dies!", monster.name), Color::Red);
+pub fn monster_death(app: &mut App, id: usize) {
+    let monster = &mut app.objects.get_mut(&id).unwrap();
 
     let renderable = &mut monster.renderable;
     renderable.glyph = '%';
@@ -165,6 +164,9 @@ pub fn monster_death(objects: &mut ObjectMap, log: &mut Log, id: usize) {
     monster.alive = false;
     monster.fighter = None;
     monster.name = format!("remains of {}", monster.name);
+
+    let message = format!("{} dies!", monster.name);
+    app.add_to_log(message, Color::Red);
 }
 
 impl Item {
@@ -213,7 +215,7 @@ impl Item {
         }
 
         match self {
-            Item::Heal => cast_heal(&mut app.objects, &mut app.log),
+            Item::Heal => cast_heal(app),
             Item::Lightning => cast_lightning(app, target.unwrap()),
 
             // NOTE: logic for equipping items is in use_item, since removing the equipped item
@@ -224,8 +226,8 @@ impl Item {
 }
 
 /// effects of a potion of healing. heals the player
-pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
-    let fighter = match &objects.get(&PLAYER).unwrap().fighter {
+pub fn cast_heal(app: &mut App) -> UseResult {
+    let fighter = match &app.objects.get(&PLAYER).unwrap().fighter {
         Some(x) => x,
         None => {
             panic!("trying to cast heal, but target_id does not have a fighter component!")
@@ -233,15 +235,15 @@ pub fn cast_heal(objects: &mut ObjectMap, log: &mut Log) -> UseResult {
     };
 
     if fighter.hp == fighter.max_hp {
-        log.add(
+        app.add_to_log(
             String::from("You are already at full health."),
             Color::default(),
         );
         UseResult::Cancelled
     } else {
         const HEAL_AMOUNT: u16 = 10;
-        heal(objects, PLAYER, HEAL_AMOUNT);
-        log.add(
+        heal(&mut app.objects, PLAYER, HEAL_AMOUNT);
+        app.add_to_log(
             String::from("Your wounds start to close."),
             Color::default(),
         );
@@ -276,16 +278,14 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
     let target_id = match get_blocking_object_id(&app.objects, &app.gamemap, target) {
         Some(x) => {
             if x == PLAYER {
-                app.log
-                    .add(String::from("Can't target yourself!"), Color::default());
+                app.add_to_log(String::from("Can't target yourself!"), Color::default());
                 return UseResult::Cancelled;
             } else {
                 x
             }
         }
         None => {
-            app.log
-                .add(String::from("No targets there."), Color::default());
+            app.add_to_log(String::from("No targets there."), Color::default());
             return UseResult::Cancelled;
         }
     };
@@ -304,18 +304,13 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
 
     if damage_dealt > 0 {
-        take_damage(
-            &mut app.objects,
-            &mut app.log,
-            target_id,
-            damage_dealt as u16,
-        );
-        app.log.add(
+        take_damage(app, target_id, damage_dealt as u16);
+        app.add_to_log(
             format!("{} for {} damage.", attack_desc, damage_dealt),
             Color::LightBlue,
         );
     } else {
-        app.log.add(
+        app.add_to_log(
             format!("{} but does no damage.", attack_desc),
             Color::default(),
         );

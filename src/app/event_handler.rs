@@ -261,8 +261,10 @@ impl App {
                             Some(id) => {
                                 // check we have enough space in inventory to unequip the item
                                 if self.inventory.len() >= INVENTORY_SIZE {
-                                    self.log
-                                        .add("Not enough space in inventory.", Color::default());
+                                    self.add_to_log(
+                                        "Not enough space in inventory.",
+                                        Color::default(),
+                                    );
                                     return PlayerAction::DidntTakeTurn;
                                 }
 
@@ -271,7 +273,7 @@ impl App {
                                 self.equipment[index] = None;
                             }
                             None => {
-                                self.log.add(
+                                self.add_to_log(
                                     format!("No item equipped on {}.", SLOT_ORDERING[index]),
                                     Color::default(),
                                 );
@@ -563,13 +565,13 @@ impl App {
 
         let attack_desc = format!("{} attacks {}", attacker.name, target.name);
         if damage > 0 {
-            take_damage(&mut self.objects, &mut self.log, target_id, damage);
-            self.log.add(
+            take_damage(self, target_id, damage);
+            self.add_to_log(
                 format!("{} for {} damage.", attack_desc, damage),
                 Color::default(),
             );
         } else {
-            self.log.add(
+            self.add_to_log(
                 format!("{} but does no damage.", attack_desc),
                 Color::default(),
             );
@@ -663,8 +665,7 @@ impl App {
     /// moves and item from the gamemap into the player inventory based on object id
     fn pick_item_up(&mut self, id: usize) {
         if self.inventory.len() >= INVENTORY_SIZE {
-            self.log
-                .add(format!("Cannot hold that many items."), Color::default());
+            self.add_to_log(format!("Cannot hold that many items."), Color::default());
         } else {
             let idx = self.gamemap.object_ids.iter().position(|&x| x == id);
             match idx {
@@ -677,8 +678,9 @@ impl App {
                     let item_obj = self.objects.get_mut(&item_id).unwrap();
                     item_obj.render_status = RenderStatus::Hide;
 
-                    self.log
-                        .add(format!("Picked up {}.", item_obj.name), Color::default());
+                    // print message to the log
+                    let message = format!("Picked up {}.", item_obj.name);
+                    self.add_to_log(message, Color::default());
                 }
                 None => {
                     panic!("invalid object id passed to pick_item_up()!")
@@ -690,7 +692,7 @@ impl App {
     /// drop an item back onto the ground
     fn drop_item_from_inventory(&mut self, inventory_idx: usize) {
         if inventory_idx > self.inventory.len() {
-            self.log.add("No item to drop.", Color::default());
+            self.add_to_log("No item to drop.", Color::default());
             return;
         }
 
@@ -755,7 +757,7 @@ impl App {
 
                 // check if the slot is empty or not
                 if self.equipment[equip_idx].is_some() {
-                    self.log.add(
+                    self.add_to_log(
                         format!("Already have an item equipped on your {}!", equip.slot),
                         Color::default(),
                     );
@@ -794,8 +796,7 @@ impl App {
             > 0;
 
         if !on_stairs {
-            self.log
-                .add("Can't go down, not standing on stairs.", Color::default());
+            self.add_to_log("Can't go down, not standing on stairs.", Color::default());
             return false;
         }
 
@@ -805,11 +806,11 @@ impl App {
         // NOTE: code to generate next stage
         let cur_level = self.gamemap.level;
         self.generate_dungeon(DungeonConfig::default().set_level(cur_level + 1));
-        self.log.add(
+        self.add_to_log(
             "As you dive deeper into the dungeon, you find a moment to rest and recover.",
             Color::Magenta,
         );
-        self.log.add("You feel stronger.", Color::Magenta);
+        self.add_to_log("You feel stronger.", Color::Magenta);
         self.update_fov(VIEW_RADIUS);
 
         let player_fighter = self

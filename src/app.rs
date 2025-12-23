@@ -24,8 +24,15 @@ pub const VIEW_RADIUS: u16 = 8;
 pub const INVENTORY_SIZE: usize = 10;
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct LogEntry {
+    time: u64,
+    message: String,
+    style: Style,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Log {
-    messages: Vec<(String, Style)>,
+    messages: Vec<LogEntry>,
 }
 
 impl Log {
@@ -33,17 +40,12 @@ impl Log {
         Self { messages: vec![] }
     }
 
-    /// add the new message as a tuple, with the text and the style
-    pub fn add<T: Into<String>, U: Into<Style>>(&mut self, message: T, style: U) {
-        self.messages.push((message.into(), style.into()));
-    }
-
     /// create a `DoubleEndedIterator` over the messages
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &(String, Style)> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &LogEntry> {
         self.messages.iter()
     }
 
-    /// create a `DoubleEndedIterator` over the messages
+    /// return the number of messages in the log
     pub fn len(&self) -> usize {
         self.messages.len()
     }
@@ -170,5 +172,15 @@ impl App {
             equipment: vec![None; SLOT_ORDERING.len()],
             log: Log::new(),
         }
+    }
+
+    /// add the new message as a tuple, with the text and the style
+    pub fn add_to_log<T: Into<String>, U: Into<Style>>(&mut self, message: T, style: U) {
+        let entry = LogEntry {
+            time: self.time,
+            message: message.into(),
+            style: style.into(),
+        };
+        self.log.messages.push(entry);
     }
 }

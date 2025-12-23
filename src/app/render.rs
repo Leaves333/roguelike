@@ -502,7 +502,7 @@ impl App {
         let mut lines: Vec<Line> = self
             .log
             .iter()
-            .map(|(text, style)| Line::from(text.as_str()).style(*style))
+            .map(|entry| Line::from(entry.message.as_str()).style(entry.style))
             .collect();
         let display_idx = lines.len().saturating_sub(area.height as usize - 2);
         let lines_to_render = lines.split_off(display_idx);
@@ -518,7 +518,7 @@ impl App {
         let mut lines: Vec<Line> = self
             .log
             .iter()
-            .map(|(text, style)| Line::from(text.as_str()).style(*style))
+            .map(|entry| Line::from(entry.message.as_str()).style(entry.style))
             .collect();
 
         let split_idx = lines

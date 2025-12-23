@@ -291,7 +291,7 @@ impl App {
                     time: self.time + 100,
                     id: object_id,
                 });
-                self.log.add(
+                self.add_to_log(
                     format!("added action for object {object_id}"),
                     Color::default(),
                 );
