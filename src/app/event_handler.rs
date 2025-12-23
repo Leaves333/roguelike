@@ -1,5 +1,5 @@
 use core::panic;
-use std::collections::HashSet;
+use std::collections::BinaryHeap;
 
 use color_eyre::{Result, eyre::Ok};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
@@ -476,11 +476,14 @@ impl App {
             None => {}
         }
 
+        // read these variables here, so we can free the reference to `ai_data`
+        let attack_time = ai_data.attack_speed;
+        let move_time = ai_data.move_speed;
+
         let target = match ai_data.target {
             Some(id) => id,
             None => {
-                // do nothing if no current target
-                return 100;
+                return move_time;
             }
         };
 
@@ -511,14 +514,14 @@ impl App {
 
         let path = pathfinder.path_to((target.pos.x, target.pos.y));
         if path.len() == 0 {
+            return 100;
         } else if path.len() == 1 {
             self.melee_action(id, *path.first().unwrap());
+            return attack_time;
         } else {
             self.move_action(id, *path.first().unwrap());
+            return move_time;
         }
-
-        // NOTE: by default, all monsters' turns only take 100 time
-        return 100;
     }
 
     /// move an object to (target_x, target_y)
@@ -795,6 +798,9 @@ impl App {
                 .add("Can't go down, not standing on stairs.", Color::default());
             return false;
         }
+
+        // clear the action queue, so enemies from the previous floor stop taking actions
+        self.action_queue = BinaryHeap::new();
 
         // NOTE: code to generate next stage
         let cur_level = self.gamemap.level;

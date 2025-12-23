@@ -133,6 +133,8 @@ pub const MELEE_FORGET_TIME: u64 = 500;
 pub struct MeleeAIData {
     pub target: Option<usize>, // id of which object this monster is targeting
     pub last_seen_time: Option<u64>, // when this monster last saw its target
+    pub move_speed: u64,       // delay between moves
+    pub attack_speed: u64,     // delay between attacks
 }
 
 impl MeleeAIData {
@@ -140,7 +142,19 @@ impl MeleeAIData {
         MeleeAIData {
             target: None,
             last_seen_time: None,
+            move_speed: 100,
+            attack_speed: 100,
         }
+    }
+
+    pub fn set_move_speed(mut self, move_speed: u64) -> Self {
+        self.move_speed = move_speed;
+        self
+    }
+
+    pub fn set_attack_speed(mut self, attack_speed: u64) -> Self {
+        self.attack_speed = attack_speed;
+        self
     }
 }
 

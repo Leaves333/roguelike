@@ -113,29 +113,43 @@ fn from_dungeon_level(table: &[Transition], level: u16) -> usize {
 
 fn monster_table(level: u16) -> Vec<(fn() -> Object, usize)> {
     let orc_weight = 80;
-    let troll_weight = from_dungeon_level(
-        &[
-            Transition {
-                level: 2,
-                value: 15,
-            },
-            Transition {
-                level: 3,
-                value: 30,
-            },
-            Transition {
-                level: 5,
-                value: 45,
-            },
-            Transition {
-                level: 7,
-                value: 60,
-            },
-        ],
-        level,
-    );
+    const RAT_WEIGHT_TABLE: &[Transition; 3] = &[
+        Transition {
+            level: 2,
+            value: 30,
+        },
+        Transition {
+            level: 3,
+            value: 50,
+        },
+        Transition {
+            level: 5,
+            value: 70,
+        },
+    ];
+    let rat_weight = from_dungeon_level(RAT_WEIGHT_TABLE, level);
 
-    vec![(entities::orc, orc_weight), (entities::troll, troll_weight)]
+    const TROLL_WEIGHT_TABLE: &[Transition; 3] = &[
+        Transition {
+            level: 3,
+            value: 30,
+        },
+        Transition {
+            level: 5,
+            value: 45,
+        },
+        Transition {
+            level: 7,
+            value: 60,
+        },
+    ];
+    let troll_weight = from_dungeon_level(TROLL_WEIGHT_TABLE, level);
+
+    vec![
+        (entities::orc, orc_weight),
+        (entities::rat, rat_weight),
+        (entities::troll, troll_weight),
+    ]
 }
 
 fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
@@ -165,6 +179,17 @@ fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
         (entities::plate_armor, plate_weight),
     ]
 }
+
+const MAX_MONSTERS_TABLE: &[Transition; 3] = &[
+    Transition { level: 1, value: 2 },
+    Transition { level: 4, value: 3 },
+    Transition { level: 6, value: 4 },
+];
+
+const MAX_ITEMS_TABLE: &[Transition; 2] = &[
+    Transition { level: 1, value: 1 },
+    Transition { level: 3, value: 2 },
+];
 
 impl App {
     /// replaces the current gamemap for the app with a new one
@@ -208,18 +233,8 @@ impl App {
             }
 
             // loot tables for monsters and items
-            let max_monsters_table = &[
-                Transition { level: 1, value: 2 },
-                Transition { level: 4, value: 3 },
-                Transition { level: 6, value: 4 },
-            ];
-            let max_monsters = from_dungeon_level(max_monsters_table, dungeon.level);
-
-            let max_items_table = &[
-                Transition { level: 1, value: 1 },
-                Transition { level: 3, value: 2 },
-            ];
-            let max_items = from_dungeon_level(max_items_table, dungeon.level);
+            let max_monsters = from_dungeon_level(MAX_MONSTERS_TABLE, dungeon.level);
+            let max_items = from_dungeon_level(MAX_ITEMS_TABLE, dungeon.level);
 
             let monsters = monster_table(dungeon.level);
             let items = item_table(dungeon.level);
@@ -272,7 +287,8 @@ impl App {
             // objects with an AI component should be added into the action queue
             if has_ai {
                 self.action_queue.push(Action {
-                    time: self.time,
+                    // NOTE: 100 is magic number to ensure monsters don't double act on the first turn
+                    time: self.time + 100,
                     id: object_id,
                 });
                 self.log.add(

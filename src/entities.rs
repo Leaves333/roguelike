@@ -73,6 +73,37 @@ pub fn orc() -> Object {
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
+    let ai_component = AIType::Melee(MeleeAIData::new());
+
+    Object::new(
+        name,
+        renderable,
+        render_status,
+        render_layer,
+        blocks_movement,
+        alive,
+    )
+    .set_fighter({
+        let max_hp = 6;
+        let defense = 0;
+        let power = 2;
+        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+    })
+    .set_ai(ai_component)
+}
+
+pub fn rat() -> Object {
+    let name = String::from("Rat");
+    let renderable = Renderable {
+        glyph: 'r',
+        fg: Color::Yellow,
+        bg: Color::Reset,
+    };
+    let render_status = RenderStatus::ShowInFOV;
+    let render_layer = RenderLayer::Blocking;
+    let blocks_movement = true;
+    let alive = true;
+    let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(75).set_attack_speed(75));
 
     Object::new(
         name,
@@ -88,7 +119,7 @@ pub fn orc() -> Object {
         let power = 2;
         Fighter::new(max_hp, defense, power, DeathCallback::Monster)
     })
-    .set_ai(AIType::Melee(MeleeAIData::new()))
+    .set_ai(ai_component)
 }
 
 pub fn troll() -> Object {
@@ -102,6 +133,7 @@ pub fn troll() -> Object {
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
+    let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(150).set_attack_speed(150));
 
     Object::new(
         name,
@@ -112,12 +144,12 @@ pub fn troll() -> Object {
         alive,
     )
     .set_fighter({
-        let max_hp = 8;
+        let max_hp = 10;
         let defense = 1;
-        let power = 4;
+        let power = 5;
         Fighter::new(max_hp, defense, power, DeathCallback::Monster)
     })
-    .set_ai(AIType::Melee(MeleeAIData::new()))
+    .set_ai(ai_component)
 }
 
 pub fn potion_cure_wounds() -> Object {

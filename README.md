@@ -24,6 +24,7 @@ graphical i'll work on it later...
 - [x] display player stats on left
 - [ ] particle effects after using skills
 - [x] improve line of sight algorithm
+- [ ] display dungeon floor in status region
 - [ ] implement more targeting methods
 - [ ] work on adding content and game balance
     - [ ] more monsters
