@@ -104,6 +104,12 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
     area
 }
 
+/// converts the given time to a string
+/// used to consistently format time in different locations
+fn time_string(time: u64) -> String {
+    format!("{:<5.1}", (time as f64) / 100.0)
+}
+
 impl App {
     pub fn render(&mut self, frame: &mut Frame) {
         let horizontal_split = layout::Layout::default()
@@ -497,13 +503,25 @@ impl App {
         formatted
     }
 
+    /// converts the log into a list of lines,
+    /// used in `render_log` / `render_fullscreen_log`
+    fn get_lines_from_log(&self) -> Vec<Line> {
+        self.log
+            .iter()
+            .map(|entry| {
+                Line::from(format!(
+                    "{} {}",
+                    time_string(entry.time),
+                    entry.message.as_str()
+                ))
+                .style(entry.style)
+            })
+            .collect()
+    }
+
     /// renders the text in the log
     fn render_log(&self, frame: &mut Frame, area: Rect) {
-        let mut lines: Vec<Line> = self
-            .log
-            .iter()
-            .map(|entry| Line::from(entry.message.as_str()).style(entry.style))
-            .collect();
+        let mut lines = self.get_lines_from_log();
         let display_idx = lines.len().saturating_sub(area.height as usize - 2);
         let lines_to_render = lines.split_off(display_idx);
 
@@ -515,12 +533,7 @@ impl App {
     /// renders log text with offset to the fullscreen log viewer
     /// returns the given offset clamped to be in bounds
     fn render_fullscreen_log(&self, frame: &mut Frame, area: Rect, offset: usize) {
-        let mut lines: Vec<Line> = self
-            .log
-            .iter()
-            .map(|entry| Line::from(entry.message.as_str()).style(entry.style))
-            .collect();
-
+        let mut lines = self.get_lines_from_log();
         let split_idx = lines
             .len()
             .saturating_sub(area.height as usize + offset - 2);
@@ -585,7 +598,7 @@ impl App {
         let time_area = layout[0];
         let depth_area = layout[1];
 
-        let time_line = Line::from(format!("Time: {:.1}", (self.time as f64) / 100.0));
+        let time_line = Line::from(format!("Time: {}", time_string(self.time)));
         let depth_line = Line::from(format!("Depth: {:0>2}", self.gamemap.level));
         let time_paragraph = Paragraph::new(vec![time_line]);
         let depth_paragraph = Paragraph::new(vec![depth_line]).right_aligned();

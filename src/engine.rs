@@ -4,7 +4,7 @@ use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
-    app::{App, GameScreen, Log, ObjectMap, PLAYER},
+    app::{App, GameScreen, ObjectMap, PLAYER},
     components::{DeathCallback, Item, Position, RenderLayer},
     gamemap::GameMap,
 };
