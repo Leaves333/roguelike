@@ -23,13 +23,16 @@ graphical i'll work on it later...
 - [x] better turn and action system ???
 - [x] display player stats on left
 - [ ] particle effects after using skills
-- [ ] improve line of sight algorithm
+- [x] improve line of sight algorithm
 - [ ] implement more targeting methods
 - [ ] work on adding content and game balance
     - [ ] more monsters
     - [ ] weapons with different attack speeds
     - [ ] damage types and resistances
+- [ ] add timestamps to log messages
 - [ ] use json files to generate content procedurally
+- [ ] fix bug of ghost enemies attacking the player
+- [ ] scroll along map edges in examine mode
 
 ## ideas:
 
