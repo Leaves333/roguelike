@@ -154,6 +154,7 @@ pub fn player_death(app: &mut App) {
 
 pub fn monster_death(app: &mut App, id: usize) {
     let monster = &mut app.objects.get_mut(&id).unwrap();
+    let message = format!("{} dies!", monster.name);
 
     let renderable = &mut monster.renderable;
     renderable.glyph = '%';
@@ -165,7 +166,6 @@ pub fn monster_death(app: &mut App, id: usize) {
     monster.fighter = None;
     monster.name = format!("remains of {}", monster.name);
 
-    let message = format!("{} dies!", monster.name);
     app.add_to_log(message, Color::Red);
 }
 
