@@ -6,7 +6,6 @@ use ratatui::style::{Color, Style, Stylize};
 use crate::{
     app::{App, GameScreen, ObjectMap, PLAYER},
     components::{DeathCallback, Item, Position, RenderLayer},
-    gamemap::GameMap,
 };
 
 // NOTE: this crate contains functions that control the gameplay
@@ -21,20 +20,6 @@ pub enum UseResult {
 /// different targeting modes for targeted abilities
 pub enum TargetingMode {
     SmiteEnemy, // smite target any enemy in line of sight
-}
-
-pub fn get_blocking_object_id(
-    objects: &ObjectMap,
-    gamemap: &GameMap,
-    pos: Position,
-) -> Option<usize> {
-    for id in gamemap.object_ids.iter() {
-        let obj = &objects.get(id).unwrap();
-        if obj.blocks_movement && obj.pos.x == pos.x && obj.pos.y == pos.y {
-            return Some(id.clone());
-        }
-    }
-    return None;
 }
 
 /// returns the true power of an fighter, after factoring in bonuses
@@ -110,8 +95,8 @@ pub fn damage(power: i16, defense: i16) -> i16 {
 }
 
 /// heals an entity for the specified amount
-pub fn heal(objects: &mut ObjectMap, id: usize, heal_amount: u16) {
-    let obj = objects.get_mut(&id).unwrap();
+pub fn heal(app: &mut App, id: usize, heal_amount: u16) {
+    let obj = app.objects.get_mut(&id).unwrap();
     if let Some(fighter) = obj.fighter.as_mut() {
         fighter.hp += heal_amount;
         fighter.hp = fighter.hp.min(fighter.max_hp)
@@ -242,7 +227,7 @@ pub fn cast_heal(app: &mut App) -> UseResult {
         UseResult::Cancelled
     } else {
         const HEAL_AMOUNT: u16 = 10;
-        heal(&mut app.objects, PLAYER, HEAL_AMOUNT);
+        heal(app, PLAYER, HEAL_AMOUNT);
         app.add_to_log(
             String::from("Your wounds start to close."),
             Color::default(),
@@ -253,29 +238,7 @@ pub fn cast_heal(app: &mut App) -> UseResult {
 
 /// effects of a scroll of lightning. smites a chosen target within line of sight
 pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
-    // get all fighters within line of sight, minus the player
-
-    // let mut valid_targets = Vec::new();
-    // for id in gamemap.object_ids.iter() {
-    //     let pos = &objects.get(id).unwrap().pos;
-    //     if *id == PLAYER || !gamemap.is_visible(pos.x, pos.y) {
-    //         continue;
-    //     }
-    //
-    //     if let Some(_fighter) = &objects.get(id).unwrap().fighter {
-    //         valid_targets.push(*id);
-    //     }
-    // }
-    //
-    // if valid_targets.len() == 0 {
-    //     log.push(format!("No targets in sight."));
-    //     return UseResult::Cancelled;
-    // }
-
-    // let mut rng = rand::rng();
-    // let target_id = valid_targets.choose(&mut rng).unwrap();
-
-    let target_id = match get_blocking_object_id(&app.objects, &app.gamemap, target) {
+    let target_id = match app.get_blocking_object_id(target.x, target.y) {
         Some(x) => {
             if x == PLAYER {
                 app.add_to_log(String::from("Can't target yourself!"), Color::default());

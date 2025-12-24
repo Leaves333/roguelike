@@ -30,10 +30,12 @@ graphical i'll work on it later...
     - [ ] more monsters
     - [ ] weapons with different attack speeds
     - [ ] damage types and resistances
-- [ ] add timestamps to log messages
+- [x] add timestamps to log messages
 - [ ] use json files to generate content procedurally
-- [ ] fix bug of ghost enemies attacking the player
+- [x] fix bug of ghost enemies attacking the player
 - [ ] scroll along map edges in examine mode
+- [ ] refactor player controls to return the amount of time the action took
+    - instead of whether the player took a turn or not
 
 ## ideas:
 
