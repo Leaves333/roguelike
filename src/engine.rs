@@ -4,7 +4,7 @@ use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
-    app::{App, GameScreen, ObjectMap, PLAYER},
+    app::{App, GameScreen, PLAYER},
     components::{DeathCallback, Item, Position, RenderLayer},
 };
 
@@ -18,6 +18,7 @@ pub enum UseResult {
 }
 
 /// different targeting modes for targeted abilities
+#[derive(PartialEq, Eq)]
 pub enum TargetingMode {
     SmiteEnemy, // smite target any enemy in line of sight
 }

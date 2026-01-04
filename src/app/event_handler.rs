@@ -1,10 +1,9 @@
-use core::panic;
-use std::collections::BinaryHeap;
-
 use color_eyre::{Result, eyre::Ok};
+use core::panic;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui::style::Color;
+use std::collections::BinaryHeap;
 
 use crate::app::Action;
 use crate::components::{
@@ -42,11 +41,349 @@ fn direction_to_deltas(direction: InputDirection) -> (i16, i16) {
     }
 }
 
-/// used to determine if the player took a turn or not
+/// represents the kind of action that a player took
+/// NOTE: the Exit variant is here because it impacts the main game loop
+/// other actions that only change the state of the app but don't affect the main loop
+/// should be handled locally, and not set as a separate enum
 enum PlayerAction {
-    TookTurn,
-    DidntTakeTurn,
+    /// the player took a turn, and their action took u64 time
+    TookTurn(u64),
+    /// the player didn't take a turn, and we shouldn't increment the time at all
+    /// this variant exists to make code more readable
+    NoTimeTaken,
     Exit,
+}
+
+const PLAYER_MOVEMENT_TIME: u64 = 100;
+const PLAYER_ITEM_USE_TIME: u64 = 50;
+
+/// match generic keybinds, used for menu navigation
+/// returns a PlayerAction if a keybind was succesfully matched, or None otherwise
+fn match_menu_keys(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    match key.modifiers {
+        KeyModifiers::CONTROL => match key.code {
+            KeyCode::Char('l') => {
+                app.toggle_fullscreen_log();
+                return Some(PlayerAction::TookTurn(0));
+            }
+            KeyCode::Esc | KeyCode::Char('q') => {
+                return Some(PlayerAction::Exit);
+            }
+            _ => {}
+        },
+        _ => match key.code {
+            KeyCode::Esc => {
+                app.switch_to_main_screen();
+                return Some(PlayerAction::TookTurn(0));
+            }
+            _ => {}
+        },
+    };
+    return None;
+}
+
+/// match keybinds for movement
+/// returns a PlayerAction if a keybind was succesfully matched, or None otherwise
+fn match_movement_keys(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    // movement related controls
+    match app.game_screen {
+        GameScreen::Main => match key.code {
+            // movement keys during the main screen
+            KeyCode::Right | KeyCode::Char('l') => {
+                app.bump_action(PLAYER, InputDirection::Right);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                app.bump_action(PLAYER, InputDirection::Left);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                app.bump_action(PLAYER, InputDirection::Down);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                app.bump_action(PLAYER, InputDirection::Up);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Char('u') => {
+                app.bump_action(PLAYER, InputDirection::UpRight);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Char('y') => {
+                app.bump_action(PLAYER, InputDirection::UpLeft);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Char('n') => {
+                app.bump_action(PLAYER, InputDirection::DownRight);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Char('b') => {
+                app.bump_action(PLAYER, InputDirection::DownLeft);
+                return Some(PlayerAction::TookTurn(PLAYER_MOVEMENT_TIME));
+            }
+            KeyCode::Char('.') => {
+                // wait action, nothing is done
+                // NOTE: default wait time is 100, independent of player movement speed
+                return Some(PlayerAction::TookTurn(100));
+            }
+            _ => {}
+        },
+        GameScreen::Examine { ref mut cursor } | GameScreen::Targeting { ref mut cursor, .. } => {
+            match key.code {
+                // move cursor around during examine and targeting modes
+                // do checks to keep cursor within bounds of the gamemap here
+                KeyCode::Down | KeyCode::Char('j') => {
+                    cursor.y = (cursor.y + 1).min(app.gamemap.height - 1);
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Right | KeyCode::Char('l') => {
+                    cursor.x = (cursor.x + 1).min(app.gamemap.width - 1);
+                }
+                KeyCode::Left | KeyCode::Char('h') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                }
+
+                KeyCode::Char('u') => {
+                    cursor.x = (cursor.x + 1).min(app.gamemap.width - 1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('y') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = cursor.y.saturating_sub(1);
+                }
+                KeyCode::Char('n') => {
+                    cursor.x = (cursor.x + 1).min(app.gamemap.width - 1);
+                    cursor.y = (cursor.y + 1).min(app.gamemap.height - 1);
+                }
+                KeyCode::Char('b') => {
+                    cursor.x = cursor.x.saturating_sub(1);
+                    cursor.y = (cursor.y + 1).min(app.gamemap.height - 1);
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    };
+    return None;
+}
+
+/// matches controls on the main menu
+/// returns a PlayerAction if a keybind was succesfully matched, or None otherwise
+fn match_main_menu_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    // check we are on the menu screen
+    if app.game_screen != GameScreen::Menu {
+        return None;
+    }
+
+    match key.code {
+        KeyCode::Char('n') => {
+            // start new game
+            app.new_game();
+            app.switch_to_main_screen();
+            Some(PlayerAction::NoTimeTaken)
+        }
+        KeyCode::Char('l') => {
+            // loads an existing game from a save file
+            let _ = app.load_game();
+            app.switch_to_main_screen();
+            Some(PlayerAction::NoTimeTaken)
+        }
+        KeyCode::Char('q') => {
+            // quit the game
+            Some(PlayerAction::Exit)
+        }
+        _ => None,
+    }
+}
+
+fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    if app.game_screen != GameScreen::Main {
+        return None;
+    }
+
+    // use alt-number to drop item from inventory
+    match key.modifiers {
+        KeyModifiers::ALT => {
+            match key.code {
+                // drop item from inventory
+                KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
+                    let index = match c {
+                        '1'..='9' => c as usize - '1' as usize,
+                        '0' => 9,
+                        _ => unreachable!(),
+                    };
+                    app.drop_item_from_inventory(index);
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+
+    match key.code {
+        // number keys to use item from inventory
+        KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
+            let index = match c {
+                '1'..='9' => c as usize - '1' as usize,
+                '0' => 9,
+                _ => unreachable!(),
+            };
+
+            if app.inventory.len() > index {
+                let item = app.get_item_in_inventory(index).clone();
+
+                if item.needs_targeting() {
+                    // item needs targeting, switch to targeting mode
+                    item.on_targeting(app, index);
+                    return Some(PlayerAction::NoTimeTaken);
+                } else {
+                    // item can be used directly
+                    let use_result = app.use_item(index, None);
+                    return match use_result {
+                        UseResult::UsedUp => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
+                        UseResult::Equipped => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
+                        UseResult::Cancelled => Some(PlayerAction::NoTimeTaken),
+                    };
+                }
+            }
+        }
+
+        // unequip item from equipment
+        KeyCode::Char(c @ 'A'..='C') => {
+            let index = c as usize - 'A' as usize;
+            match app.equipment[index] {
+                Some(id) => {
+                    // check we have enough space in inventory to unequip the item
+                    if app.inventory.len() >= INVENTORY_SIZE {
+                        app.add_to_log("Not enough space in inventory.", Color::default());
+                        return Some(PlayerAction::NoTimeTaken);
+                    }
+
+                    // unequip and move to inventory
+                    app.inventory.push(id);
+                    app.equipment[index] = None;
+                    return Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME));
+                }
+                None => {
+                    app.add_to_log(
+                        format!("No item equipped on {}.", SLOT_ORDERING[index]),
+                        Color::default(),
+                    );
+                    return Some(PlayerAction::NoTimeTaken);
+                }
+            }
+        }
+
+        // `g`rab the first item at player's location
+        KeyCode::Char('g') => {
+            let player_pos = &app.objects.get(&PLAYER).unwrap().pos;
+            let id = app.gamemap.object_ids.iter().find(|x| {
+                let obj = &app.objects.get(x).unwrap();
+                obj.pos.x == player_pos.x && obj.pos.y == player_pos.y && obj.item.is_some()
+            });
+            match id {
+                Some(id) => {
+                    app.pick_item_up(id.clone());
+                    return Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME));
+                }
+                None => {
+                    return Some(PlayerAction::TookTurn(0));
+                }
+            }
+        }
+        _ => {}
+    }
+
+    return None;
+}
+
+/// matches any remaining game controls on the main screen
+fn match_misc_game_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    if app.game_screen != GameScreen::Main {
+        return None;
+    }
+
+    match key.code {
+        // move to examine mode
+        KeyCode::Char('x') => {
+            app.toggle_examine_mode();
+            Some(PlayerAction::NoTimeTaken)
+        }
+
+        // go down stairs if stairs exist
+        KeyCode::Char('>') => {
+            let _ = app.go_down_stairs();
+            app.switch_to_main_screen();
+            Some(PlayerAction::NoTimeTaken)
+        }
+        _ => None,
+    }
+}
+
+fn match_log_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    match app.game_screen {
+        GameScreen::Log { ref mut offset } => match key.code {
+            KeyCode::PageUp => {
+                *offset += 10;
+                Some(PlayerAction::NoTimeTaken)
+            }
+            KeyCode::PageDown => {
+                *offset = offset.saturating_sub(10);
+                Some(PlayerAction::NoTimeTaken)
+            }
+            KeyCode::Char('k') => {
+                *offset += 1;
+                Some(PlayerAction::NoTimeTaken)
+            }
+            KeyCode::Char('j') => {
+                *offset = offset.saturating_sub(1);
+                Some(PlayerAction::NoTimeTaken)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn match_examine_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    // NOTE: controls for moving the cursor fall under movement controls
+    match app.game_screen {
+        GameScreen::Examine { .. } => match key.code {
+            // exit examine mode
+            KeyCode::Char('x') => {
+                app.toggle_examine_mode();
+                Some(PlayerAction::NoTimeTaken)
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn match_targeting_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction> {
+    match app.game_screen {
+        GameScreen::Targeting {
+            ref cursor,
+            inventory_idx,
+            ..
+        } => match key.code {
+            KeyCode::Enter => {
+                // use the item and exit targeting mode
+                let use_result = app.use_item(inventory_idx, Some(cursor.clone()));
+                app.game_screen = GameScreen::Main;
+
+                match use_result {
+                    UseResult::UsedUp => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
+                    UseResult::Equipped => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
+                    UseResult::Cancelled => Some(PlayerAction::NoTimeTaken),
+                }
+            }
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 impl App {
@@ -56,20 +393,16 @@ impl App {
             if let Event::Key(key) = event::read()? {
                 let action = self.handle_keys(key);
                 match action {
-                    PlayerAction::TookTurn => {
-                        // increment the time
-                        // NOTE: should change this in the future
-                        // based on how long the player's action took
-                        self.time += 100;
+                    PlayerAction::TookTurn(time_taken) => {
+                        if time_taken == 0 {
+                            continue;
+                        }
 
-                        // monsters act...
+                        self.time += time_taken;
                         self.handle_monster_turns();
-
-                        // update fov
                         self.update_fov(VIEW_RADIUS);
                     }
-                    PlayerAction::DidntTakeTurn => {
-                        // nothing happens
+                    PlayerAction::NoTimeTaken => {
                         continue;
                     }
                     PlayerAction::Exit => {
@@ -83,285 +416,22 @@ impl App {
 
     /// translate the key event into the appropriate gameplay actions
     fn handle_keys(&mut self, key: KeyEvent) -> PlayerAction {
-        // match generic keybinds, used for menu navigation
-        // NOTE: these need to be handled first
-        match key.modifiers {
-            KeyModifiers::CONTROL => match key.code {
-                KeyCode::Char('l') => {
-                    self.toggle_fullscreen_log();
-                    return PlayerAction::DidntTakeTurn;
-                }
-                KeyCode::Esc | KeyCode::Char('q') => {
-                    return PlayerAction::Exit;
-                }
-                _ => {}
-            },
-            _ => match key.code {
-                KeyCode::Esc => {
-                    self.switch_to_main_screen();
-                    return PlayerAction::DidntTakeTurn;
-                }
-                _ => {}
-            },
-        };
+        let handlers = &[
+            match_menu_keys,
+            match_movement_keys,
+            match_main_menu_controls,
+            match_misc_game_controls,
+            match_inventory_controls,
+            match_log_controls,
+            match_examine_controls,
+            match_targeting_controls,
+        ];
 
-        // movement related controls
-        match self.game_screen {
-            GameScreen::Main => match key.code {
-                // movement keys during the main screen
-                KeyCode::Right | KeyCode::Char('l') => {
-                    self.bump_action(PLAYER, InputDirection::Right);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Left | KeyCode::Char('h') => {
-                    self.bump_action(PLAYER, InputDirection::Left);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.bump_action(PLAYER, InputDirection::Down);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.bump_action(PLAYER, InputDirection::Up);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Char('u') => {
-                    self.bump_action(PLAYER, InputDirection::UpRight);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Char('y') => {
-                    self.bump_action(PLAYER, InputDirection::UpLeft);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Char('n') => {
-                    self.bump_action(PLAYER, InputDirection::DownRight);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Char('b') => {
-                    self.bump_action(PLAYER, InputDirection::DownLeft);
-                    return PlayerAction::TookTurn;
-                }
-                KeyCode::Char('.') => {
-                    // wait action, nothing is done
-                    return PlayerAction::TookTurn;
-                }
-                _ => {}
-            },
-            GameScreen::Examine { ref mut cursor }
-            | GameScreen::Targeting { ref mut cursor, .. } => match key.code {
-                // move cursor around during examine and targeting modes
-                // do checks to keep cursor within bounds of the gamemap here
-                KeyCode::Down | KeyCode::Char('j') => {
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Right | KeyCode::Char('l') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                }
-                KeyCode::Left | KeyCode::Char('h') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                }
-
-                KeyCode::Char('u') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Char('y') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                    cursor.y = cursor.y.saturating_sub(1);
-                }
-                KeyCode::Char('n') => {
-                    cursor.x = (cursor.x + 1).min(self.gamemap.width - 1);
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-                KeyCode::Char('b') => {
-                    cursor.x = cursor.x.saturating_sub(1);
-                    cursor.y = (cursor.y + 1).min(self.gamemap.height - 1);
-                }
-                _ => {}
-            },
-            _ => {}
-        };
-
-        // keybinds specific to certain gamescreens
-        match self.game_screen {
-            // main menu controls
-            GameScreen::Menu => {
-                match key.code {
-                    KeyCode::Char('n') => {
-                        // start new game
-                        self.new_game();
-                        self.switch_to_main_screen();
-                    }
-                    KeyCode::Char('l') => {
-                        // loads an existing game from a save file
-                        let _ = self.load_game();
-                        self.switch_to_main_screen();
-                    }
-                    KeyCode::Char('q') => {
-                        // quit the game
-                        return PlayerAction::Exit;
-                    }
-                    _ => {}
-                }
-            }
-            GameScreen::Main => {
-                match key.modifiers {
-                    KeyModifiers::ALT => {
-                        match key.code {
-                            // drop item from inventory
-                            KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
-                                let index = match c {
-                                    '1'..='9' => c as usize - '1' as usize,
-                                    '0' => 9,
-                                    _ => unreachable!(),
-                                };
-                                self.drop_item_from_inventory(index);
-                            }
-                            _ => {}
-                        }
-                    }
-                    _ => {}
-                }
-
-                match key.code {
-                    // use item from inventory
-                    KeyCode::Char(c @ '1'..='9') | KeyCode::Char(c @ '0') => {
-                        let index = match c {
-                            '1'..='9' => c as usize - '1' as usize,
-                            '0' => 9,
-                            _ => unreachable!(),
-                        };
-
-                        if self.inventory.len() > index {
-                            let item = self.get_item_in_inventory(index).clone();
-
-                            if item.needs_targeting() {
-                                // item needs targeting, switch to targeting mode
-                                item.on_targeting(self, index);
-                                return PlayerAction::DidntTakeTurn;
-                            } else {
-                                // item can be used directly
-                                let use_result = self.use_item(index, None);
-                                return match use_result {
-                                    UseResult::UsedUp => PlayerAction::TookTurn,
-                                    UseResult::Equipped => PlayerAction::TookTurn,
-                                    UseResult::Cancelled => PlayerAction::DidntTakeTurn,
-                                };
-                            }
-                        }
-                    }
-
-                    // unequip item from equipment
-                    KeyCode::Char(c @ 'A'..='C') => {
-                        let index = c as usize - 'A' as usize;
-                        match self.equipment[index] {
-                            Some(id) => {
-                                // check we have enough space in inventory to unequip the item
-                                if self.inventory.len() >= INVENTORY_SIZE {
-                                    self.add_to_log(
-                                        "Not enough space in inventory.",
-                                        Color::default(),
-                                    );
-                                    return PlayerAction::DidntTakeTurn;
-                                }
-
-                                // unequip and move to inventory
-                                self.inventory.push(id);
-                                self.equipment[index] = None;
-                            }
-                            None => {
-                                self.add_to_log(
-                                    format!("No item equipped on {}.", SLOT_ORDERING[index]),
-                                    Color::default(),
-                                );
-                            }
-                        }
-                    }
-
-                    // pick up the first item at location
-                    KeyCode::Char('g') => {
-                        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
-                        let id = self.gamemap.object_ids.iter().find(|x| {
-                            let obj = &self.objects.get(x).unwrap();
-                            obj.pos.x == player_pos.x
-                                && obj.pos.y == player_pos.y
-                                && obj.item.is_some()
-                        });
-                        match id {
-                            Some(id) => {
-                                self.pick_item_up(id.clone());
-                                return PlayerAction::TookTurn;
-                            }
-                            None => {
-                                return PlayerAction::DidntTakeTurn;
-                            }
-                        }
-                    }
-
-                    // can only go to examine mode from main game screen
-                    KeyCode::Char('x') => {
-                        self.toggle_examine_mode();
-                        return PlayerAction::DidntTakeTurn;
-                    }
-
-                    // go down stairs if stairs exist
-                    KeyCode::Char('>') => {
-                        let _ = self.go_down_stairs();
-                        self.switch_to_main_screen();
-                        return PlayerAction::DidntTakeTurn;
-                    }
-
-                    _ => {}
-                }
-            }
-            GameScreen::Log { ref mut offset } => match key.code {
-                KeyCode::PageUp => {
-                    *offset += 10;
-                }
-                KeyCode::PageDown => {
-                    *offset = offset.saturating_sub(10);
-                }
-                KeyCode::Char('k') => {
-                    *offset += 1;
-                }
-                KeyCode::Char('j') => {
-                    *offset = offset.saturating_sub(1);
-                }
-                _ => {}
-            },
-            GameScreen::Examine { .. } => match key.code {
-                // exit examine mode
-                KeyCode::Char('x') => {
-                    self.toggle_examine_mode();
-                    return PlayerAction::DidntTakeTurn;
-                }
-                _ => {}
-            },
-            GameScreen::Targeting {
-                ref cursor,
-                inventory_idx,
-                ..
-            } => match key.code {
-                KeyCode::Enter => {
-                    // use the item and exit targeting mode
-                    let use_result = self.use_item(inventory_idx, Some(cursor.clone()));
-                    self.game_screen = GameScreen::Main;
-
-                    return match use_result {
-                        UseResult::UsedUp => PlayerAction::TookTurn,
-                        UseResult::Equipped => PlayerAction::TookTurn,
-                        UseResult::Cancelled => PlayerAction::DidntTakeTurn,
-                    };
-                }
-                _ => {}
-            },
-        };
-
-        // if no keybinds were matched
-        return PlayerAction::DidntTakeTurn;
+        // iterates through handlers, and gives the first one with a non-none result
+        handlers
+            .iter()
+            .find_map(|handler| handler(self, key))
+            .unwrap_or(PlayerAction::NoTimeTaken)
     }
 
     pub fn new_game(&mut self) {

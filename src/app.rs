@@ -136,6 +136,7 @@ pub struct App {
 }
 
 /// a singleton enum describing the current screen to display
+#[derive(PartialEq, Eq)]
 pub enum GameScreen {
     /// the main menu
     Menu,
