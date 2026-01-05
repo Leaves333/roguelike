@@ -5,6 +5,7 @@ use ratatui::style::Color;
 
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
+use crate::engine::get_blocking_object_id;
 use crate::entities::spawn;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
@@ -270,7 +271,7 @@ impl App {
             let y = rng.random_range((room.y1 + 1)..room.y2);
 
             // check if it intersects with any entities
-            match self.get_blocking_object_id(x, y) {
+            match get_blocking_object_id(self, x, y) {
                 Some(_) => {
                     continue;
                 }

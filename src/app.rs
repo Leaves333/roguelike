@@ -15,7 +15,7 @@ use crate::{
 };
 
 mod event_handler;
-mod procgen;
+pub(crate) mod procgen;
 mod render;
 mod saving;
 
@@ -102,8 +102,8 @@ impl ObjectMap {
 /// struct for the priority queue that decides which object id should act next
 #[derive(Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Action {
-    time: u64, // time that the action should be performed
-    id: usize, // id of object that should take an action
+    pub time: u64, // time that the action should be performed
+    pub id: usize, // id of object that should take an action
 }
 
 impl Ord for Action {
