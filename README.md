@@ -36,6 +36,7 @@ graphical i'll work on it later...
 - [ ] scroll along map edges in examine mode
 - [x] refactor player controls to return the amount of time the action took
     - instead of whether the player took a turn or not
+- [ ] rework items such that only one item can be on each tile
 
 ## ideas:
 

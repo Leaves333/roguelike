@@ -414,7 +414,7 @@ pub fn handle_melee_ai(app: &mut App, id: usize) -> u64 {
     costs.resize((app.gamemap.height * app.gamemap.width) as usize, 0);
     for y in 0..app.gamemap.height {
         for x in 0..app.gamemap.width {
-            if app.gamemap.get_ref(x, y).walkable {
+            if app.gamemap.get_ref(x, y).is_walkable() {
                 costs[coords_to_idx(x, y, app.gamemap.width)] += 1;
             }
         }
@@ -448,7 +448,7 @@ pub fn handle_melee_ai(app: &mut App, id: usize) -> u64 {
 
 /// move an object to (target_x, target_y)
 pub fn move_action(app: &mut App, id: usize, (target_x, target_y): (u16, u16)) {
-    if !app.gamemap.get_ref(target_x, target_y).walkable {
+    if !app.gamemap.get_ref(target_x, target_y).is_walkable() {
         return; // destination is blocked by a tile
     }
 
@@ -562,7 +562,7 @@ pub fn update_fov(app: &mut App, radius: u16) {
 
             // walk along the path to check for visibility
             for (x, y) in path {
-                if !app.gamemap.get_ref(x, y).transparent {
+                if !app.gamemap.get_ref(x, y).is_transparent() {
                     app.gamemap.set_visible(x, y, true);
                     break;
                 }

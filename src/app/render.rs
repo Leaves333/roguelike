@@ -341,9 +341,13 @@ impl App {
                     position: target_pos,
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
-                            tile.light.clone()
+                            tile.renderable()
                         } else if self.gamemap.is_explored(x, y) {
-                            tile.dark.clone()
+                            Renderable {
+                                glyph: tile.renderable().glyph,
+                                fg: Color::DarkGray,
+                                bg: Color::Reset,
+                            }
                         } else {
                             gamemap::shroud_renderable()
                         }
@@ -488,9 +492,9 @@ impl App {
                 formatted.push(format!("   you can't see this tile.").into());
             } else {
                 let tile = self.gamemap.get_ref(cursor.x, cursor.y);
-                if *tile == Tile::from_type(TileType::Floor) {
+                if *tile == Tile::new(TileType::Floor) {
                     formatted.push(format!("   the floor.").into());
-                } else if *tile == Tile::from_type(TileType::Wall) {
+                } else if *tile == Tile::new(TileType::Wall) {
                     formatted.push(format!("   a wall.").into());
                 }
             }

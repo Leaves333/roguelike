@@ -4,16 +4,55 @@ use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-pub struct Tile {
-    pub walkable: bool,
-    pub transparent: bool,
-    pub light: Renderable,
-    pub dark: Renderable,
-}
-
 pub enum TileType {
     Floor,
     Wall,
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tile {
+    pub tile_type: TileType,
+    pub item: Option<usize>,
+    pub object: Option<usize>,
+}
+
+impl Tile {
+    pub fn new(tile_type: TileType) -> Self {
+        Self {
+            tile_type,
+            item: None,
+            object: None,
+        }
+    }
+
+    pub fn is_walkable(&self) -> bool {
+        match self.tile_type {
+            TileType::Floor => true,
+            TileType::Wall => false,
+        }
+    }
+
+    pub fn is_transparent(&self) -> bool {
+        match self.tile_type {
+            TileType::Floor => true,
+            TileType::Wall => false,
+        }
+    }
+
+    pub fn renderable(&self) -> Renderable {
+        match self.tile_type {
+            TileType::Wall => Renderable {
+                glyph: '#',
+                fg: Color::Gray,
+                bg: Color::Reset,
+            },
+            TileType::Floor => Renderable {
+                glyph: '.',
+                fg: Color::Gray,
+                bg: Color::Reset,
+            },
+        }
+    }
 }
 
 // the default renderable to display for a tile when it is not explored and not visible
@@ -22,42 +61,6 @@ pub fn shroud_renderable() -> Renderable {
         glyph: ' ',
         fg: Color::Reset,
         bg: Color::Reset,
-    }
-}
-
-impl Tile {
-    /// constructs a tile from a TileType enum
-    pub fn from_type(tile_type: TileType) -> Tile {
-        match tile_type {
-            TileType::Wall => Self {
-                walkable: false,
-                transparent: false,
-                light: Renderable {
-                    glyph: '#',
-                    fg: Color::Gray,
-                    bg: Color::Reset,
-                },
-                dark: Renderable {
-                    glyph: '#',
-                    fg: Color::DarkGray,
-                    bg: Color::Reset,
-                },
-            },
-            TileType::Floor => Self {
-                walkable: true,
-                transparent: true,
-                light: Renderable {
-                    glyph: '.',
-                    fg: Color::Gray,
-                    bg: Color::Reset,
-                },
-                dark: Renderable {
-                    glyph: '.',
-                    fg: Color::DarkGray,
-                    bg: Color::Reset,
-                },
-            },
-        }
     }
 }
 
@@ -89,7 +92,7 @@ impl GameMap {
             height,
             level,
             object_ids,
-            tiles: vec![Tile::from_type(TileType::Wall); (width * height) as usize],
+            tiles: vec![Tile::new(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
         }

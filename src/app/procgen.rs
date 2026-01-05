@@ -219,7 +219,7 @@ impl App {
 
             // dig out the room's inner area
             for (x, y) in new_room.inner() {
-                *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+                *dungeon.get_mut(x, y) = Tile::new(TileType::Floor);
             }
 
             if rooms.is_empty() {
@@ -229,7 +229,7 @@ impl App {
             } else {
                 // dig tunnel between current room and previous
                 for (x, y) in tunnel_between(rooms.last().unwrap().center(), new_room.center()) {
-                    *dungeon.get_mut(x, y) = Tile::from_type(TileType::Floor);
+                    *dungeon.get_mut(x, y) = Tile::new(TileType::Floor);
                 }
             }
 
