@@ -34,7 +34,7 @@ graphical i'll work on it later...
 - [ ] use json files to generate content procedurally
 - [x] fix bug of ghost enemies attacking the player
 - [ ] scroll along map edges in examine mode
-- [ ] refactor player controls to return the amount of time the action took
+- [x] refactor player controls to return the amount of time the action took
     - instead of whether the player took a turn or not
 
 ## ideas:

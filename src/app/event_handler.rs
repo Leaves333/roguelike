@@ -6,16 +6,17 @@ use ratatui::style::Color;
 use std::collections::BinaryHeap;
 
 use crate::app::Action;
-use crate::components::{
-    AIType, Item, MELEE_FORGET_TIME, MeleeAIData, Object, Position, RenderStatus, SLOT_ORDERING,
-};
+use crate::components::{AIType, MELEE_FORGET_TIME, MeleeAIData, Object, SLOT_ORDERING};
 use crate::engine::{UseResult, defense, power, take_damage};
 use crate::gamemap::coords_to_idx;
+use crate::inventory;
 use crate::los;
 use crate::pathfinding::Pathfinder;
 
 use super::procgen::DungeonConfig;
 use super::{App, GameScreen, INVENTORY_SIZE, PLAYER, VIEW_RADIUS};
+
+// NOTE: i want this file to contain logic for handling player controls
 
 enum InputDirection {
     Up,
@@ -214,7 +215,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                         '0' => 9,
                         _ => unreachable!(),
                     };
-                    app.drop_item_from_inventory(index);
+                    inventory::drop_item(app, index);
                 }
                 _ => {}
             }
@@ -232,7 +233,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
             };
 
             if app.inventory.len() > index {
-                let item = app.get_item_in_inventory(index).clone();
+                let item = inventory::get_item_in_inventory(app, index).clone();
 
                 if item.needs_targeting() {
                     // item needs targeting, switch to targeting mode
@@ -240,7 +241,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                     return Some(PlayerAction::NoTimeTaken);
                 } else {
                     // item can be used directly
-                    let use_result = app.use_item(index, None);
+                    let use_result = inventory::use_item(app, index, None);
                     return match use_result {
                         UseResult::UsedUp => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
                         UseResult::Equipped => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
@@ -285,7 +286,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
             });
             match id {
                 Some(id) => {
-                    app.pick_item_up(id.clone());
+                    inventory::pick_item_up(app, id.clone());
                     return Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME));
                 }
                 None => {
@@ -371,7 +372,7 @@ fn match_targeting_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
         } => match key.code {
             KeyCode::Enter => {
                 // use the item and exit targeting mode
-                let use_result = app.use_item(inventory_idx, Some(cursor.clone()));
+                let use_result = inventory::use_item(app, inventory_idx, Some(cursor.clone()));
                 app.game_screen = GameScreen::Main;
 
                 match use_result {
@@ -730,119 +731,6 @@ impl App {
         {
             *e |= v;
         }
-    }
-
-    /// moves and item from the gamemap into the player inventory based on object id
-    fn pick_item_up(&mut self, id: usize) {
-        if self.inventory.len() >= INVENTORY_SIZE {
-            self.add_to_log(format!("Cannot hold that many items."), Color::default());
-        } else {
-            let idx = self.gamemap.object_ids.iter().position(|&x| x == id);
-            match idx {
-                Some(x) => {
-                    // add the item to the inventory
-                    let item_id = self.gamemap.object_ids.swap_remove(x);
-                    self.inventory.push(item_id);
-
-                    // hide it on the map
-                    let item_obj = self.objects.get_mut(&item_id).unwrap();
-                    item_obj.render_status = RenderStatus::Hide;
-
-                    // print message to the log
-                    let message = format!("Picked up {}.", item_obj.name);
-                    self.add_to_log(message, Color::default());
-                }
-                None => {
-                    panic!("invalid object id passed to pick_item_up()!")
-                }
-            }
-        }
-    }
-
-    /// drop an item back onto the ground
-    fn drop_item_from_inventory(&mut self, inventory_idx: usize) {
-        if inventory_idx > self.inventory.len() {
-            self.add_to_log("No item to drop.", Color::default());
-            return;
-        }
-
-        // reshow the item on the map, and set its position to the player's position
-        let player_pos = self.objects.get(&PLAYER).unwrap().pos.clone();
-        let item_id = self.inventory[inventory_idx];
-        let item_obj = self.objects.get_mut(&item_id).unwrap();
-
-        self.gamemap.object_ids.push(item_id);
-        item_obj.pos = player_pos;
-        item_obj.render_status = RenderStatus::ShowInFOV;
-
-        self.inventory.remove(inventory_idx);
-    }
-
-    /// returns the item for a given index in the inventory
-    fn get_item_in_inventory(&self, inventory_idx: usize) -> &Item {
-        let item_id = self.inventory[inventory_idx];
-        match &self.objects.get(&item_id).unwrap().item {
-            Some(x) => x,
-            None => {
-                panic!(
-                    "get_item_in_inventory() called, but object does not have an item component!"
-                )
-            }
-        }
-    }
-
-    /// returns the object for a given index in the inventory
-    fn get_object_in_inventory(&self, inventory_idx: usize) -> &Object {
-        let item_id = self.inventory[inventory_idx];
-        match self.objects.get(&item_id) {
-            Some(x) => x,
-            None => {
-                panic!(
-                    "get_object_in_inventory() called, but could not find an object with that id!"
-                )
-            }
-        }
-    }
-
-    /// uses an item from the specified index in the inventory
-    fn use_item(&mut self, inventory_idx: usize, target: Option<Position>) -> UseResult {
-        let item = self.get_item_in_inventory(inventory_idx).clone();
-        let use_result = item.on_use(self, target);
-
-        match use_result {
-            UseResult::UsedUp => {
-                // delete item after being used
-                self.inventory.remove(inventory_idx);
-            }
-            UseResult::Cancelled => {
-                // item wasn't used, don't delete it
-            }
-            UseResult::Equipped => {
-                // try to equip item by moving it from the inventory to the equipment slot
-
-                // get the index that this item is supposed to be equipped in
-                let obj = self.get_object_in_inventory(inventory_idx);
-                let equip = obj.equipment.as_ref().unwrap();
-                let equip_idx = equip.slot as usize;
-
-                // check if the slot is empty or not
-                if self.equipment[equip_idx].is_some() {
-                    self.add_to_log(
-                        format!("Already have an item equipped on your {}!", equip.slot),
-                        Color::default(),
-                    );
-                    return UseResult::Cancelled;
-                }
-
-                // if equipment slot isn't empty, equip it
-                self.equipment[equip_idx] = Some(self.inventory[inventory_idx]);
-
-                // remove equipped item from inventory
-                self.inventory.remove(inventory_idx);
-            }
-        };
-
-        use_result
     }
 
     /// attempts to go down stairs at the current location.
