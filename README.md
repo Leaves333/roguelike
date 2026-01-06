@@ -37,8 +37,12 @@ graphical i'll work on it later...
 - [x] refactor player controls to return the amount of time the action took
     - instead of whether the player took a turn or not
 - [x] rework items such that only one item can be on each tile
-- [ ] fix crash when generating dungeons when multiple items are placed on the
+- [x] fix crash when generating dungeons when multiple items are placed on the
 same tile
+- [ ] rework log format to be more consistent
+- [ ] make examine mode more descriptive
+    - [ ] add tooltips for items and enemies
+- [ ] show last seen glyph in explored tiles
 
 ## ideas:
 

@@ -141,12 +141,6 @@ impl GameMap {
         self.objects.get(&id).copied()
     }
 
-    /// gets the player's position. should be ok to unwrap since player should always exist
-    /// TODO: delete this function
-    pub fn get_player_position(&self) -> Position {
-        self.get_position(PLAYER).unwrap()
-    }
-
     /// attempts to place an object at a specified location.
     /// panics if unsuccessful
     pub fn place_blocker(&mut self, id: usize, x: u16, y: u16) {

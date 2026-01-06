@@ -281,13 +281,6 @@ impl App {
             let x = rng.random_range((room.x1 + 1)..room.x2);
             let y = rng.random_range((room.y1 + 1)..room.y2);
 
-            // panic!(
-            //     "height: {}, width: {}, len: {}",
-            //     dungeon.height,
-            //     dungeon.width,
-            //     dungeon.tiles.len()
-            // );
-
             // check if it intersects with any entities
             let tile = dungeon.get_ref(x, y);
             if is_item {

@@ -186,7 +186,7 @@ impl App {
                     x: inner_area.width / 2,
                     y: inner_area.height / 2,
                 };
-                let player_pos = self.gamemap.get_player_position();
+                let player_pos = self.gamemap.get_position(PLAYER).unwrap();
 
                 match (player_pos.x + inner_area.width).checked_sub(center.x) {
                     Some(x) => {

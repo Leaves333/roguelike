@@ -219,7 +219,7 @@ impl Item {
 
         // all other cases, targeting is required
         let targeting = GameScreen::Targeting {
-            cursor: app.gamemap.get_player_position(),
+            cursor: app.gamemap.get_position(PLAYER).unwrap(),
             targeting: targeting_mode,
             text: targeting_text,
             inventory_idx,
