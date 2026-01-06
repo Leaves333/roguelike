@@ -548,7 +548,7 @@ pub fn update_fov(app: &mut App, radius: u16) {
     );
     let (ylow, yhigh) = (
         (player_y.saturating_sub(radius)).max(0),
-        (player_y + radius).min(app.gamemap.width - 1),
+        (player_y + radius).min(app.gamemap.height - 1),
     );
 
     // loop through each x, y to check visibility
