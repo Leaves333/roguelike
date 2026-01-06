@@ -37,7 +37,7 @@ pub fn pick_item_up(app: &mut App, id: usize) {
 
 /// drops an item from the inventory back onto the ground
 pub fn drop_item(app: &mut App, inventory_idx: usize) {
-    if inventory_idx > app.inventory.len() {
+    if inventory_idx >= app.inventory.len() {
         app.add_to_log("No item to drop.", Color::default());
         return;
     }
