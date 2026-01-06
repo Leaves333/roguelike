@@ -229,7 +229,20 @@ impl App {
             rooms.push(new_room);
         }
 
+        // spawn player in the center of the first room
+        let first_room = rooms.first().unwrap();
+        let (player_x, player_y) = first_room.center();
+        dungeon.place_blocker(PLAYER, player_x, player_y);
+
+        // spawn the stairs in the center of the last room
+        let last_room = rooms.last().unwrap();
+        let (stairs_x, stairs_y) = last_room.center();
+        let stairs_id = self.objects.add(entities::stairs());
+        dungeon.place_item(stairs_id, stairs_x, stairs_y);
+
         // generate contents in rooms
+        // NOTE: this step happens last to ensure player and
+        // stairs have priority on where they get placed
         for room in &rooms {
             // loot tables for monsters and items
             let max_monsters = from_dungeon_level(MAX_MONSTERS_TABLE, dungeon.level);
@@ -249,17 +262,6 @@ impl App {
             self.place_objects(&room, &mut dungeon, &monsters, max_monsters, false);
             self.place_objects(&room, &mut dungeon, &items, max_items, true);
         }
-
-        // spawn player in the center of the first room
-        let first_room = rooms.first().unwrap();
-        let (player_x, player_y) = first_room.center();
-        dungeon.place_blocker(PLAYER, player_x, player_y);
-
-        // spawn the stairs in the center of the last room
-        let last_room = rooms.last().unwrap();
-        let (stairs_x, stairs_y) = last_room.center();
-        let stairs_id = self.objects.add(entities::stairs());
-        dungeon.place_item(stairs_id, stairs_x, stairs_y);
 
         self.gamemap = dungeon;
     }
