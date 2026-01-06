@@ -20,13 +20,6 @@ pub struct Renderable {
     pub bg: Color,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum RenderStatus {
-    Hide,
-    ShowInFOV,
-    ShowInExplored,
-}
-
 // NOTE: enums are ordered by their discriminants. discriminants are smallest for values at the top
 // see https://doc.rust-lang.org/std/cmp/trait.Ord.html
 
@@ -41,9 +34,8 @@ pub enum RenderLayer {
 pub struct Object {
     pub name: String, // name of this object
     // pub pos: Position,               // where object is located
-    pub renderable: Renderable,      // how this object looks on the map
-    pub render_status: RenderStatus, // rules on how we should render this object
-    pub render_layer: RenderLayer,   // priority on when to render this object
+    pub renderable: Renderable,    // how this object looks on the map
+    pub render_layer: RenderLayer, // priority on when to render this object
     pub blocks_movement: bool,
     pub alive: bool,
     pub fighter: Option<Fighter>,
@@ -57,7 +49,6 @@ impl Object {
     pub fn new(
         name: String,
         renderable: Renderable,
-        render_status: RenderStatus,
         render_layer: RenderLayer,
         blocks_movement: bool,
         alive: bool,
@@ -66,7 +57,6 @@ impl Object {
             name,
             renderable,
             render_layer,
-            render_status,
             blocks_movement,
             alive,
             fighter: None,

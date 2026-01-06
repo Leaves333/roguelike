@@ -174,7 +174,6 @@ impl GameMap {
 
     /// gets the position of either a blocker or item matching that id
     pub fn get_position(&self, id: usize) -> Option<Position> {
-        let blocker_pos = self.get_blocker_position(id);
         self.get_blocker_position(id).or(self.get_item_position(id))
     }
 

@@ -1,8 +1,8 @@
 // this file contains a list of spawnable entities
 
 use crate::components::{
-    AIType, DeathCallback, Equipment, Fighter, Item, MeleeAIData, Object, RenderLayer,
-    RenderStatus, Renderable, Slot,
+    AIType, DeathCallback, Equipment, Fighter, Item, MeleeAIData, Object, RenderLayer, Renderable,
+    Slot,
 };
 use ratatui::style::Color;
 
@@ -19,19 +19,11 @@ pub fn stairs() -> Object {
         fg: Color::Gray,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInExplored;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
 }
 
 pub fn player() -> Object {
@@ -41,20 +33,11 @@ pub fn player() -> Object {
         fg: Color::default(),
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInExplored;
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_fighter({
+    Object::new(name, renderable, render_layer, blocks_movement, alive).set_fighter({
         let max_hp = 20;
         let defense = 0;
         let power = 2;
@@ -69,27 +52,19 @@ pub fn orc() -> Object {
         fg: Color::Red,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
     let ai_component = AIType::Melee(MeleeAIData::new());
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_fighter({
-        let max_hp = 6;
-        let defense = 0;
-        let power = 2;
-        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
-    })
-    .set_ai(ai_component)
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_fighter({
+            let max_hp = 6;
+            let defense = 0;
+            let power = 2;
+            Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+        })
+        .set_ai(ai_component)
 }
 
 pub fn rat() -> Object {
@@ -99,27 +74,19 @@ pub fn rat() -> Object {
         fg: Color::Yellow,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
     let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(75).set_attack_speed(75));
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_fighter({
-        let max_hp = 5;
-        let defense = 0;
-        let power = 2;
-        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
-    })
-    .set_ai(ai_component)
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_fighter({
+            let max_hp = 5;
+            let defense = 0;
+            let power = 2;
+            Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+        })
+        .set_ai(ai_component)
 }
 
 pub fn troll() -> Object {
@@ -129,27 +96,19 @@ pub fn troll() -> Object {
         fg: Color::Green,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Blocking;
     let blocks_movement = true;
     let alive = true;
     let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(150).set_attack_speed(150));
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_fighter({
-        let max_hp = 10;
-        let defense = 1;
-        let power = 5;
-        Fighter::new(max_hp, defense, power, DeathCallback::Monster)
-    })
-    .set_ai(ai_component)
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_fighter({
+            let max_hp = 10;
+            let defense = 1;
+            let power = 5;
+            Fighter::new(max_hp, defense, power, DeathCallback::Monster)
+        })
+        .set_ai(ai_component)
 }
 
 pub fn potion_cure_wounds() -> Object {
@@ -159,20 +118,11 @@ pub fn potion_cure_wounds() -> Object {
         fg: Color::Magenta,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Heal)
+    Object::new(name, renderable, render_layer, blocks_movement, alive).set_item(Item::Heal)
 }
 
 pub fn scroll_lightning() -> Object {
@@ -182,20 +132,11 @@ pub fn scroll_lightning() -> Object {
         fg: Color::Blue,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Lightning)
+    Object::new(name, renderable, render_layer, blocks_movement, alive).set_item(Item::Lightning)
 }
 
 pub fn weapon_dagger() -> Object {
@@ -205,25 +146,17 @@ pub fn weapon_dagger() -> Object {
         fg: Color::default(),
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Equipment)
-    .set_equipment(Equipment {
-        slot: Slot::Weapon,
-        power_bonus: 2,
-        defense_bonus: 0,
-    })
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_item(Item::Equipment)
+        .set_equipment(Equipment {
+            slot: Slot::Weapon,
+            power_bonus: 2,
+            defense_bonus: 0,
+        })
 }
 
 pub fn weapon_longsword() -> Object {
@@ -233,25 +166,17 @@ pub fn weapon_longsword() -> Object {
         fg: Color::Blue,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Equipment)
-    .set_equipment(Equipment {
-        slot: Slot::Weapon,
-        power_bonus: 4,
-        defense_bonus: 0,
-    })
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_item(Item::Equipment)
+        .set_equipment(Equipment {
+            slot: Slot::Weapon,
+            power_bonus: 4,
+            defense_bonus: 0,
+        })
 }
 
 pub fn helmet() -> Object {
@@ -261,25 +186,17 @@ pub fn helmet() -> Object {
         fg: Color::default(),
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Equipment)
-    .set_equipment(Equipment {
-        slot: Slot::Head,
-        power_bonus: 0,
-        defense_bonus: 1,
-    })
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_item(Item::Equipment)
+        .set_equipment(Equipment {
+            slot: Slot::Head,
+            power_bonus: 0,
+            defense_bonus: 1,
+        })
 }
 
 pub fn leather_armor() -> Object {
@@ -289,25 +206,17 @@ pub fn leather_armor() -> Object {
         fg: Color::default(),
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Equipment)
-    .set_equipment(Equipment {
-        slot: Slot::Body,
-        power_bonus: 0,
-        defense_bonus: 1,
-    })
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_item(Item::Equipment)
+        .set_equipment(Equipment {
+            slot: Slot::Body,
+            power_bonus: 0,
+            defense_bonus: 1,
+        })
 }
 
 pub fn plate_armor() -> Object {
@@ -317,23 +226,15 @@ pub fn plate_armor() -> Object {
         fg: Color::Blue,
         bg: Color::Reset,
     };
-    let render_status = RenderStatus::ShowInFOV;
     let render_layer = RenderLayer::Item;
     let blocks_movement = false;
     let alive = false;
 
-    Object::new(
-        name,
-        renderable,
-        render_status,
-        render_layer,
-        blocks_movement,
-        alive,
-    )
-    .set_item(Item::Equipment)
-    .set_equipment(Equipment {
-        slot: Slot::Body,
-        power_bonus: 0,
-        defense_bonus: 2,
-    })
+    Object::new(name, renderable, render_layer, blocks_movement, alive)
+        .set_item(Item::Equipment)
+        .set_equipment(Equipment {
+            slot: Slot::Body,
+            power_bonus: 0,
+            defense_bonus: 2,
+        })
 }

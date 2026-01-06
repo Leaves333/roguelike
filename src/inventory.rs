@@ -2,7 +2,7 @@ use ratatui::style::Color;
 
 use crate::{
     app::{App, INVENTORY_SIZE, PLAYER},
-    components::{Item, Object, Position, RenderStatus},
+    components::{Item, Object, Position},
     engine::UseResult,
 };
 
@@ -23,7 +23,6 @@ pub fn pick_item_up(app: &mut App, id: usize) {
                 app.gamemap.remove_item(item_pos.x, item_pos.y);
 
                 let item_obj = app.objects.get_mut(&item_id).unwrap();
-                item_obj.render_status = RenderStatus::Hide;
 
                 // print message to the log
                 let message = format!("Picked up {}.", item_obj.name);

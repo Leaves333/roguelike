@@ -9,7 +9,7 @@ use ratatui::{
 
 use super::{App, GameScreen, PLAYER};
 use crate::{
-    components::{Position, RenderStatus, Renderable, SLOT_ORDERING},
+    components::{Position, Renderable, SLOT_ORDERING},
     engine::{defense, power},
     gamemap::{self, Tile, TileType},
 };
