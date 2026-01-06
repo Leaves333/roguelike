@@ -231,7 +231,10 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                 Some(id) => {
                     // check we have enough space in inventory to unequip the item
                     if app.inventory.len() >= INVENTORY_SIZE {
-                        app.add_to_log("Not enough space in inventory.", Color::default());
+                        app.add_to_log(
+                            "Cannot unequip: not enough space in inventory.",
+                            Color::default(),
+                        );
                         return Some(PlayerAction::NoTimeTaken);
                     }
 
@@ -242,7 +245,10 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                 }
                 None => {
                     app.add_to_log(
-                        format!("No item equipped on {}.", SLOT_ORDERING[index]),
+                        format!(
+                            "Cannot unequip: no item equipped on {}.",
+                            SLOT_ORDERING[index]
+                        ),
                         Color::default(),
                     );
                     return Some(PlayerAction::NoTimeTaken);
