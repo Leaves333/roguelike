@@ -47,15 +47,11 @@ pub fn drop_item(app: &mut App, inventory_idx: usize) {
     let tile = app.gamemap.get_ref(pos.x, pos.y);
     if tile.item.is_some() {
         app.add_to_log("No space to drop item.", Color::default());
+        return;
     }
 
     let item_id = app.inventory[inventory_idx];
     app.gamemap.place_item(item_id, pos.x, pos.y);
-
-    // let item_obj = app.objects.get_mut(&item_id).unwrap();
-    // app.gamemap.object_ids.push(item_id);
-    // item_obj.pos = player_pos;
-    // item_obj.render_status = RenderStatus::ShowInFOV;
 
     app.inventory.remove(inventory_idx);
 }

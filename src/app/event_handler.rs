@@ -188,6 +188,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                         _ => unreachable!(),
                     };
                     inventory::drop_item(app, index);
+                    return Some(PlayerAction::NoTimeTaken);
                 }
                 _ => {}
             }
