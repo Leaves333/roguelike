@@ -85,6 +85,7 @@ pub struct GameMap {
     pub tiles: Vec<Tile>, // the tiles comprising the map of the dungeon
     pub visible: Vec<bool>, // whether any given tile is visible
     pub explored: Vec<bool>, // whether any given tile has been explored
+    pub last_seen: Vec<Renderable>, // the state of the tile when it was last seen
     objects: HashMap<usize, Position>, // objects present in this gamemap, mapped to their position
 }
 
@@ -94,10 +95,11 @@ impl GameMap {
             width,
             height,
             level,
-            objects: HashMap::new(),
             tiles: vec![Tile::new(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
+            last_seen: vec![Renderable::default(); (width * height) as usize],
+            objects: HashMap::new(),
         }
     }
 
@@ -126,6 +128,15 @@ impl GameMap {
     #[allow(dead_code)]
     pub fn set_explored(&mut self, x: u16, y: u16, value: bool) {
         self.explored[coords_to_idx(x, y, self.width)] = value;
+    }
+
+    /// returns a copy of the last seen version of a given tile
+    pub fn get_last_seen(&self, x: u16, y: u16) -> Renderable {
+        self.last_seen[coords_to_idx(x, y, self.width)].clone()
+    }
+
+    pub fn set_last_seen(&mut self, x: u16, y: u16, value: Renderable) {
+        self.last_seen[coords_to_idx(x, y, self.width)] = value;
     }
 
     // quickly check if an index is in bounds

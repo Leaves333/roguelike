@@ -583,6 +583,20 @@ pub fn update_fov(app: &mut App, radius: u16) {
     {
         *e |= v;
     }
+
+    // for each visible tile, update the renderable it was last seen as
+    for x in xlow..=xhigh {
+        for y in ylow..=yhigh {
+            if app.gamemap.is_visible(x, y) {
+                let tile = app.gamemap.get_ref(x, y);
+                app.gamemap.set_last_seen(
+                    x,
+                    y,
+                    crate::app::render::tile_topmost_renderable(app, tile),
+                );
+            }
+        }
+    }
 }
 
 /// attempts to go down stairs at the current location.

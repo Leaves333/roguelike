@@ -14,6 +14,16 @@ pub struct Renderable {
     pub bg: Color,
 }
 
+impl Renderable {
+    pub fn default() -> Self {
+        Self {
+            glyph: '_',
+            fg: Color::default(),
+            bg: Color::Reset,
+        }
+    }
+}
+
 // NOTE: enums are ordered by their discriminants. discriminants are smallest for values at the top
 // see https://doc.rust-lang.org/std/cmp/trait.Ord.html
 

@@ -15,8 +15,8 @@ use crate::{
 };
 
 mod event_handler;
-pub(crate) mod procgen;
-mod render;
+pub mod procgen;
+pub mod render;
 mod saving;
 
 pub const PLAYER: usize = 0;

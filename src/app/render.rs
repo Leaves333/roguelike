@@ -138,6 +138,20 @@ fn relative_coords(area: Rect, center_pos: Position, target_pos: Position) -> Op
     }
 }
 
+/// returns the way that a tile will appear on the map,
+/// based on what items/blockers are on top of it
+pub fn tile_topmost_renderable(app: &App, tile: &Tile) -> Renderable {
+    if let Some(blocker_id) = tile.blocker {
+        let blocker = app.objects.get(&blocker_id).unwrap();
+        return blocker.renderable.clone();
+    }
+    if let Some(item_id) = tile.item {
+        let item = app.objects.get(&item_id).unwrap();
+        return item.renderable.clone();
+    }
+    tile.renderable()
+}
+
 impl App {
     pub fn render(&mut self, frame: &mut Frame) {
         let horizontal_split = layout::Layout::default()
@@ -235,7 +249,6 @@ impl App {
             }
             GameScreen::Main => {
                 self.render_tiles(frame, world_layout[0]);
-                // self.render_entities(frame, world_layout[0]);
                 self.render_log(frame, world_layout[1]);
             }
             GameScreen::Log { offset } => {
@@ -243,7 +256,6 @@ impl App {
             }
             GameScreen::Examine { ref cursor } => {
                 self.render_tiles(frame, world_layout[0]);
-                // self.render_entities(frame, world_layout[0]);
 
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
                 self.render_examine_info(frame, world_layout[1], &cursor);
@@ -254,7 +266,6 @@ impl App {
                 ..
             } => {
                 self.render_tiles(frame, world_layout[0]);
-                // self.render_entities(frame, world_layout[0]);
 
                 // TODO: render targeting line of fire overlay to world map
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
@@ -326,7 +337,6 @@ impl App {
         }
 
         // render the tiles in the gamemap
-
         let player_pos = self.gamemap.get_position(PLAYER).unwrap();
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
@@ -342,10 +352,11 @@ impl App {
                     position: target_pos,
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
-                            self.tile_topmost_renderable(tile)
+                            tile_topmost_renderable(self, tile)
                         } else if self.gamemap.is_explored(x, y) {
+                            let last_seen = self.gamemap.get_last_seen(x, y);
                             Renderable {
-                                glyph: tile.renderable().glyph,
+                                glyph: last_seen.glyph,
                                 fg: Color::DarkGray,
                                 bg: Color::Reset,
                             }
@@ -357,18 +368,6 @@ impl App {
                 frame.render_widget(ch, inner_area);
             }
         }
-    }
-
-    fn tile_topmost_renderable(&self, tile: &Tile) -> Renderable {
-        if let Some(blocker_id) = tile.blocker {
-            let blocker = self.objects.get(&blocker_id).unwrap();
-            return blocker.renderable.clone();
-        }
-        if let Some(item_id) = tile.item {
-            let item = self.objects.get(&item_id).unwrap();
-            return item.renderable.clone();
-        }
-        tile.renderable()
     }
 
     /// render the cursor in the map after rendering everything else
