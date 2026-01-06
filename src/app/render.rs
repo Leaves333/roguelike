@@ -11,6 +11,7 @@ use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, Renderable, SLOT_ORDERING},
     engine::{defense, power},
+    entities::player,
     gamemap::{self, Tile, TileType},
 };
 
@@ -108,6 +109,34 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
 /// used to consistently format time in different locations
 fn time_string(time: u64) -> String {
     format!("{:<5.1}", (time as f64) / 100.0)
+}
+
+/// computes offset x and y relative to a center location and the center of the area
+/// used for rendering objects to the worldmap
+fn relative_coords(area: Rect, center_pos: Position, target_pos: Position) -> Option<Position> {
+    let center = Position {
+        x: area.width / 2,
+        y: area.height / 2,
+    };
+
+    let x = match (center.x + target_pos.x).checked_sub(center_pos.x) {
+        Some(x) => x,
+        None => {
+            return None;
+        }
+    };
+    let y = match (center.y + target_pos.y).checked_sub(center_pos.y) {
+        Some(y) => y,
+        None => {
+            return None;
+        }
+    };
+
+    if x > area.width || y > area.height {
+        None
+    } else {
+        Some(Position { x, y })
+    }
 }
 
 impl App {
@@ -275,35 +304,6 @@ impl App {
         frame.render_widget(instruction_paragraph, instruction_area);
     }
 
-    /// computes offset x and y relative to the player's position and the center of the area
-    /// used for rendering objects to the worldmap
-    fn player_relative_coords(&self, area: Rect, obj_pos: Position) -> Option<Position> {
-        let center = Position {
-            x: area.width / 2,
-            y: area.height / 2,
-        };
-        let player_pos = self.gamemap.get_player_position();
-
-        let x = match (center.x + obj_pos.x).checked_sub(player_pos.x) {
-            Some(x) => x,
-            None => {
-                return None;
-            }
-        };
-        let y = match (center.y + obj_pos.y).checked_sub(player_pos.y) {
-            Some(y) => y,
-            None => {
-                return None;
-            }
-        };
-
-        if x > area.width || y > area.height {
-            None
-        } else {
-            Some(Position { x, y })
-        }
-    }
-
     /// render tiles in gamemap
     fn render_tiles(&self, frame: &mut Frame, area: layout::Rect) {
         let inner_area = area.inner(Margin {
@@ -327,9 +327,11 @@ impl App {
         }
 
         // render the tiles in the gamemap
+
+        let player_pos = self.gamemap.get_position(PLAYER).unwrap();
         for x in 0..self.gamemap.width {
             for y in 0..self.gamemap.height {
-                let target_pos = match self.player_relative_coords(inner_area, Position { x, y }) {
+                let target_pos = match relative_coords(inner_area, player_pos, Position { x, y }) {
                     Some(pos) => pos,
                     None => {
                         continue;
@@ -370,57 +372,6 @@ impl App {
         tile.renderable()
     }
 
-    /// render all objects in the gamemap to screen
-    // fn render_entities(&self, frame: &mut Frame, area: Rect) {
-    //     let block = Block::default().title("world").borders(Borders::ALL);
-    //     frame.render_widget(block, area);
-    //     let inner_area = area.inner(Margin {
-    //         horizontal: 1,
-    //         vertical: 1,
-    //     });
-    //
-    //     let mut indices_to_draw = self.gamemap.object_ids.clone();
-    //     indices_to_draw.sort_by(|a, b| {
-    //         let obj_a = self.objects.get(&a).unwrap();
-    //         let obj_b = self.objects.get(&b).unwrap();
-    //         obj_a.render_layer.cmp(&obj_b.render_layer)
-    //     });
-    //
-    //     for obj in indices_to_draw
-    //         .iter()
-    //         .map(|id| self.objects.get(id).unwrap())
-    //     {
-    //         let obj_pos = &obj.pos;
-    //         let renderable = &obj.renderable;
-    //
-    //         let target_pos = match self.player_relative_coords(inner_area, obj_pos.clone()) {
-    //             Some(pos) => pos,
-    //             None => {
-    //                 continue;
-    //             }
-    //         };
-    //
-    //         let ch = CharWidget {
-    //             position: target_pos,
-    //             renderable: renderable.clone(),
-    //         };
-    //
-    //         match obj.render_status {
-    //             RenderStatus::Hide => {}
-    //             RenderStatus::ShowInFOV => {
-    //                 if self.gamemap.is_visible(obj_pos.x, obj_pos.y) {
-    //                     frame.render_widget(ch, inner_area);
-    //                 }
-    //             }
-    //             RenderStatus::ShowInExplored => {
-    //                 if self.gamemap.is_explored(obj_pos.x, obj_pos.y) {
-    //                     frame.render_widget(ch, inner_area);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
     /// render the cursor in the map after rendering everything else
     fn render_examine_cursor(&self, frame: &mut Frame, area: Rect, cursor: &Position) {
         // use inner_area because render_map() also renders to this
@@ -430,8 +381,10 @@ impl App {
         });
 
         // swap the fg and bg colors of the cell the cursor is highlighting
-        let offset_pos = match self.player_relative_coords(
+        let player_pos = self.gamemap.get_position(PLAYER).unwrap();
+        let offset_pos = match relative_coords(
             inner_area,
+            player_pos,
             Position {
                 x: cursor.x,
                 y: cursor.y,
