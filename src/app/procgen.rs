@@ -5,7 +5,6 @@ use ratatui::style::Color;
 
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
-use crate::engine::get_blocking_object_id;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
 

@@ -6,9 +6,7 @@ use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
     app::{Action, App, GameScreen, PLAYER, VIEW_RADIUS},
-    components::{
-        AIType, DeathCallback, Item, MELEE_FORGET_TIME, MeleeAIData, Object, Position, RenderLayer,
-    },
+    components::{AIType, DeathCallback, Item, MELEE_FORGET_TIME, MeleeAIData, Position},
     gamemap::coords_to_idx,
     los,
     pathfinding::Pathfinder,

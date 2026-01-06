@@ -7,12 +7,6 @@ pub struct Position {
     pub y: u16,
 }
 
-impl Position {
-    pub fn default() -> Self {
-        Position { x: 0, y: 0 }
-    }
-}
-
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Renderable {
     pub glyph: char,

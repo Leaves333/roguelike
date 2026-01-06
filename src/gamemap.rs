@@ -1,9 +1,6 @@
 use std::{collections::HashMap, panic};
 
-use crate::{
-    app::PLAYER,
-    components::{Position, Renderable},
-};
+use crate::components::{Position, Renderable};
 
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
