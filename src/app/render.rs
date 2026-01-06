@@ -158,7 +158,7 @@ impl App {
                     x: inner_area.width / 2,
                     y: inner_area.height / 2,
                 };
-                let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+                let player_pos = self.gamemap.get_player_position();
 
                 match (player_pos.x + inner_area.width).checked_sub(center.x) {
                     Some(x) => {
@@ -207,7 +207,7 @@ impl App {
             }
             GameScreen::Main => {
                 self.render_tiles(frame, world_layout[0]);
-                self.render_entities(frame, world_layout[0]);
+                // self.render_entities(frame, world_layout[0]);
                 self.render_log(frame, world_layout[1]);
             }
             GameScreen::Log { offset } => {
@@ -215,7 +215,7 @@ impl App {
             }
             GameScreen::Examine { ref cursor } => {
                 self.render_tiles(frame, world_layout[0]);
-                self.render_entities(frame, world_layout[0]);
+                // self.render_entities(frame, world_layout[0]);
 
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
                 self.render_examine_info(frame, world_layout[1], &cursor);
@@ -226,7 +226,7 @@ impl App {
                 ..
             } => {
                 self.render_tiles(frame, world_layout[0]);
-                self.render_entities(frame, world_layout[0]);
+                // self.render_entities(frame, world_layout[0]);
 
                 // TODO: render targeting line of fire overlay to world map
                 self.render_examine_cursor(frame, world_layout[0], &cursor);
@@ -282,7 +282,7 @@ impl App {
             x: area.width / 2,
             y: area.height / 2,
         };
-        let player_pos = &self.objects.get(&PLAYER).unwrap().pos;
+        let player_pos = self.gamemap.get_player_position();
 
         let x = match (center.x + obj_pos.x).checked_sub(player_pos.x) {
             Some(x) => x,
@@ -341,10 +341,10 @@ impl App {
                     position: target_pos,
                     renderable: {
                         if self.gamemap.is_visible(x, y) {
-                            tile.renderable()
+                            self.tile_topmost_renderable(tile)
                         } else if self.gamemap.is_explored(x, y) {
                             Renderable {
-                                glyph: tile.renderable().glyph,
+                                glyph: self.tile_topmost_renderable(tile).glyph,
                                 fg: Color::DarkGray,
                                 bg: Color::Reset,
                             }
@@ -358,56 +358,68 @@ impl App {
         }
     }
 
-    /// render all objects in the gamemap to screen
-    fn render_entities(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::default().title("world").borders(Borders::ALL);
-        frame.render_widget(block, area);
-        let inner_area = area.inner(Margin {
-            horizontal: 1,
-            vertical: 1,
-        });
-
-        let mut indices_to_draw = self.gamemap.object_ids.clone();
-        indices_to_draw.sort_by(|a, b| {
-            let obj_a = self.objects.get(&a).unwrap();
-            let obj_b = self.objects.get(&b).unwrap();
-            obj_a.render_layer.cmp(&obj_b.render_layer)
-        });
-
-        for obj in indices_to_draw
-            .iter()
-            .map(|id| self.objects.get(id).unwrap())
-        {
-            let obj_pos = &obj.pos;
-            let renderable = &obj.renderable;
-
-            let target_pos = match self.player_relative_coords(inner_area, obj_pos.clone()) {
-                Some(pos) => pos,
-                None => {
-                    continue;
-                }
-            };
-
-            let ch = CharWidget {
-                position: target_pos,
-                renderable: renderable.clone(),
-            };
-
-            match obj.render_status {
-                RenderStatus::Hide => {}
-                RenderStatus::ShowInFOV => {
-                    if self.gamemap.is_visible(obj_pos.x, obj_pos.y) {
-                        frame.render_widget(ch, inner_area);
-                    }
-                }
-                RenderStatus::ShowInExplored => {
-                    if self.gamemap.is_explored(obj_pos.x, obj_pos.y) {
-                        frame.render_widget(ch, inner_area);
-                    }
-                }
-            }
+    fn tile_topmost_renderable(&self, tile: &Tile) -> Renderable {
+        if let Some(blocker_id) = tile.blocker {
+            let blocker = self.objects.get(&blocker_id).unwrap();
+            return blocker.renderable.clone();
         }
+        if let Some(item_id) = tile.item {
+            let item = self.objects.get(&item_id).unwrap();
+            return item.renderable.clone();
+        }
+        tile.renderable()
     }
+
+    /// render all objects in the gamemap to screen
+    // fn render_entities(&self, frame: &mut Frame, area: Rect) {
+    //     let block = Block::default().title("world").borders(Borders::ALL);
+    //     frame.render_widget(block, area);
+    //     let inner_area = area.inner(Margin {
+    //         horizontal: 1,
+    //         vertical: 1,
+    //     });
+    //
+    //     let mut indices_to_draw = self.gamemap.object_ids.clone();
+    //     indices_to_draw.sort_by(|a, b| {
+    //         let obj_a = self.objects.get(&a).unwrap();
+    //         let obj_b = self.objects.get(&b).unwrap();
+    //         obj_a.render_layer.cmp(&obj_b.render_layer)
+    //     });
+    //
+    //     for obj in indices_to_draw
+    //         .iter()
+    //         .map(|id| self.objects.get(id).unwrap())
+    //     {
+    //         let obj_pos = &obj.pos;
+    //         let renderable = &obj.renderable;
+    //
+    //         let target_pos = match self.player_relative_coords(inner_area, obj_pos.clone()) {
+    //             Some(pos) => pos,
+    //             None => {
+    //                 continue;
+    //             }
+    //         };
+    //
+    //         let ch = CharWidget {
+    //             position: target_pos,
+    //             renderable: renderable.clone(),
+    //         };
+    //
+    //         match obj.render_status {
+    //             RenderStatus::Hide => {}
+    //             RenderStatus::ShowInFOV => {
+    //                 if self.gamemap.is_visible(obj_pos.x, obj_pos.y) {
+    //                     frame.render_widget(ch, inner_area);
+    //                 }
+    //             }
+    //             RenderStatus::ShowInExplored => {
+    //                 if self.gamemap.is_explored(obj_pos.x, obj_pos.y) {
+    //                     frame.render_widget(ch, inner_area);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     /// render the cursor in the map after rendering everything else
     fn render_examine_cursor(&self, frame: &mut Frame, area: Rect, cursor: &Position) {
@@ -477,9 +489,11 @@ impl App {
     /// to be used with render_examine() and render_targeting()
     fn get_objects_at_cursor(&self, cursor: &Position) -> Vec<String> {
         let mut names = Vec::new();
+
+        // TODO: refactor this to use the new tile system better
         for id in self.gamemap.object_ids.iter() {
             let obj = self.objects.get(id).unwrap();
-            if &obj.pos == cursor {
+            if &self.gamemap.get_position(*id).unwrap() == cursor {
                 names.push(&obj.name);
             }
         }

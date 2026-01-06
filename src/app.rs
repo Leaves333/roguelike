@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     components::{Object, Position, SLOT_ORDERING},
     engine::TargetingMode,
-    entities::{self, spawn},
+    entities::{self},
     gamemap::GameMap,
 };
 
@@ -157,7 +157,7 @@ pub enum GameScreen {
 
 impl App {
     pub fn new() -> Self {
-        let player = spawn(0, 0, entities::player());
+        let player = entities::player();
         let objects = ObjectMap::new(player);
 
         Self {

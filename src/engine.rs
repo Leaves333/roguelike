@@ -171,15 +171,20 @@ pub fn monster_death(app: &mut App, id: usize) {
     let monster = &mut app.objects.get_mut(&id).unwrap();
     let message = format!("{} dies!", monster.name);
 
-    let renderable = &mut monster.renderable;
-    renderable.glyph = '%';
-    renderable.fg = Color::Red;
+    let monster_pos = app.gamemap.get_position(id).unwrap();
+    app.gamemap.remove_blocker(monster_pos.x, monster_pos.y);
 
-    monster.blocks_movement = false;
-    monster.render_layer = RenderLayer::Corpse;
-    monster.alive = false;
-    monster.fighter = None;
-    monster.name = format!("remains of {}", monster.name);
+    // TODO: add blood to the tile after monster death
+
+    // let renderable = &mut monster.renderable;
+    // renderable.glyph = '%';
+    // renderable.fg = Color::Red;
+    //
+    // monster.blocks_movement = false;
+    // monster.render_layer = RenderLayer::Corpse;
+    // monster.alive = false;
+    // monster.fighter = None;
+    // monster.name = format!("remains of {}", monster.name);
 
     app.add_to_log(message, Color::Red);
 }
@@ -214,7 +219,7 @@ impl Item {
 
         // all other cases, targeting is required
         let targeting = GameScreen::Targeting {
-            cursor: app.objects.get(&PLAYER).unwrap().pos,
+            cursor: app.gamemap.get_player_position(),
             targeting: targeting_mode,
             text: targeting_text,
             inventory_idx,
@@ -383,7 +388,8 @@ pub fn handle_melee_ai(app: &mut App, id: usize) -> u64 {
 
     // check if player is in line of sight
     // NOTE: rework los algorithm later, for now assume it is symmetric
-    if app.gamemap.is_visible(monster.pos.x, monster.pos.y) {
+    let monster_pos = app.gamemap.get_position(id).unwrap();
+    if app.gamemap.is_visible(monster_pos.x, monster_pos.y) {
         ai_data.target = Some(PLAYER);
         ai_data.last_seen_time = Some(app.time);
     }
@@ -422,19 +428,16 @@ pub fn handle_melee_ai(app: &mut App, id: usize) -> u64 {
 
     let pathfinder = Pathfinder::new(
         costs,
-        (monster.pos.x, monster.pos.y),
+        (monster_pos.x, monster_pos.y),
         app.gamemap.width,
         app.gamemap.height,
         2,
         3,
     );
 
-    let monster_name = monster.name.clone();
-    let Some(target) = app.objects.get(&target) else {
-        panic!("handle_melee_ai: melee AI on {monster_name} had an invalid target id!",);
-    };
+    let target_pos = app.gamemap.get_position(target).unwrap();
+    let path = pathfinder.path_to((target_pos.x, target_pos.y));
 
-    let path = pathfinder.path_to((target.pos.x, target.pos.y));
     if path.len() == 0 {
         return 100;
     } else if path.len() == 1 {
@@ -456,9 +459,13 @@ pub fn move_action(app: &mut App, id: usize, (target_x, target_y): (u16, u16)) {
         return; // destination is blocked by an object
     }
 
-    let pos = &mut app.objects.get_mut(&id).unwrap().pos;
-    pos.x = target_x;
-    pos.y = target_y;
+    app.add_to_log(format!("move action for {id}"), Color::default());
+
+    let pos = app.gamemap.get_position(id).unwrap();
+    let obj = app.gamemap.remove_blocker(pos.x, pos.y);
+    app.gamemap.place_blocker(obj, target_x, target_y);
+
+    assert!(obj == id); // sanity check that we got the right object
 }
 
 /// returns the amount of time this action took
@@ -500,13 +507,15 @@ pub fn melee_action(app: &mut App, attacker_id: usize, (target_x, target_y): (u1
 
 pub fn bump_action(app: &mut App, id: usize, direction: InputDirection) {
     // check that action target is in bounds
-    let pos = &app.objects.get(&id).unwrap().pos;
+    let pos = app.gamemap.get_position(id).unwrap();
     let deltas = direction_to_deltas(direction);
     let (dx, dy) = deltas;
     if !app.gamemap.in_bounds(pos.x as i16 + dx, pos.y as i16 + dy) {
         return; // destination is not in bounds
     }
     let (target_x, target_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
+
+    app.add_to_log(format!("bump action for {id}"), Color::default());
 
     // decide which action to take
     match get_blocking_object_id(app, target_x, target_y) {
@@ -520,20 +529,20 @@ pub fn bump_action(app: &mut App, id: usize, direction: InputDirection) {
 }
 
 pub fn get_blocking_object_id(app: &App, x: u16, y: u16) -> Option<usize> {
-    for id in app.gamemap.object_ids.iter() {
-        let obj = &app.objects.get(id).unwrap();
-        if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
-            return Some(id.clone());
-        }
-    }
-    return None;
+    // for id in app.gamemap.object_ids.iter() {
+    //     let obj = &app.objects.get(id).unwrap();
+    //     if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
+    //         return Some(id.clone());
+    //     }
+    // }
+    app.gamemap.get_ref(x, y).blocker
 }
 
 // recompute visible area based on the player's fov
 pub fn update_fov(app: &mut App, radius: u16) {
     // TODO: use a different symmetric algo to calculate line of sight
 
-    let position = &app.objects.get(&PLAYER).unwrap().pos;
+    let position = app.gamemap.get_position(PLAYER).unwrap();
     let (player_x, player_y) = (position.x, position.y);
 
     app.gamemap.visible.fill(false);
@@ -585,22 +594,32 @@ pub fn update_fov(app: &mut App, radius: u16) {
 /// attempts to go down stairs at the current location.
 /// returns true if successful, false if not
 pub fn go_down_stairs(app: &mut App) -> bool {
-    let player_pos = app.objects.get(&PLAYER).unwrap().pos;
+    let player_pos = app.gamemap.get_position(PLAYER).unwrap();
 
     // match for objects at player_pos
-    let objects_at_pos: Vec<&Object> = app
-        .gamemap
-        .object_ids
-        .iter()
-        .map(|id| app.objects.get(id).unwrap())
-        .filter(|&obj| obj.pos == player_pos)
-        .collect();
+    // let objects_at_pos: Vec<&Object> = app
+    //     .gamemap
+    //     .object_ids
+    //     .iter()
+    //     .map(|id| app.objects.get(id).unwrap())
+    //     .filter(|&obj| obj.pos == player_pos)
+    //     .collect();
+    //
+    // let on_stairs = objects_at_pos
+    //     .iter()
+    //     .filter(|&obj| obj.name == "Stairs")
+    //     .count()
+    //     > 0;
 
-    let on_stairs = objects_at_pos
-        .iter()
-        .filter(|&obj| obj.name == "Stairs")
-        .count()
-        > 0;
+    let on_stairs = {
+        let item = app.gamemap.get_ref(player_pos.x, player_pos.y).item;
+        if let Some(id) = item {
+            let item = app.objects.get(&id).unwrap();
+            item.name == "Stairs"
+        } else {
+            false
+        }
+    };
 
     if !on_stairs {
         app.add_to_log("Can't go down, not standing on stairs.", Color::default());

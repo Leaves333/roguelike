@@ -19,6 +19,9 @@ pub fn pick_item_up(app: &mut App, id: usize) {
                 app.inventory.push(item_id);
 
                 // hide it on the map
+                let item_pos = app.gamemap.get_position(id).unwrap();
+                app.gamemap.remove_item(item_pos.x, item_pos.y);
+
                 let item_obj = app.objects.get_mut(&item_id).unwrap();
                 item_obj.render_status = RenderStatus::Hide;
 
@@ -41,13 +44,19 @@ pub fn drop_item(app: &mut App, inventory_idx: usize) {
     }
 
     // reshow the item on the map, and set its position to the player's position
-    let player_pos = app.objects.get(&PLAYER).unwrap().pos.clone();
-    let item_id = app.inventory[inventory_idx];
-    let item_obj = app.objects.get_mut(&item_id).unwrap();
+    let pos = app.gamemap.get_position(PLAYER).unwrap();
+    let tile = app.gamemap.get_ref(pos.x, pos.y);
+    if tile.item.is_some() {
+        app.add_to_log("No space to drop item.", Color::default());
+    }
 
-    app.gamemap.object_ids.push(item_id);
-    item_obj.pos = player_pos;
-    item_obj.render_status = RenderStatus::ShowInFOV;
+    let item_id = app.inventory[inventory_idx];
+    app.gamemap.place_item(item_id, pos.x, pos.y);
+
+    // let item_obj = app.objects.get_mut(&item_id).unwrap();
+    // app.gamemap.object_ids.push(item_id);
+    // item_obj.pos = player_pos;
+    // item_obj.render_status = RenderStatus::ShowInFOV;
 
     app.inventory.remove(inventory_idx);
 }

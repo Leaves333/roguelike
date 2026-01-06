@@ -1,7 +1,7 @@
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Position {
     pub x: u16,
     pub y: u16,
@@ -39,8 +39,8 @@ pub enum RenderLayer {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Object {
-    pub name: String,                // name of this object
-    pub pos: Position,               // where object is located
+    pub name: String, // name of this object
+    // pub pos: Position,               // where object is located
     pub renderable: Renderable,      // how this object looks on the map
     pub render_status: RenderStatus, // rules on how we should render this object
     pub render_layer: RenderLayer,   // priority on when to render this object
@@ -64,7 +64,6 @@ impl Object {
     ) -> Self {
         Self {
             name,
-            pos: Position::default(),
             renderable,
             render_layer,
             render_status,

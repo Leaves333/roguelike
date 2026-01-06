@@ -6,11 +6,11 @@ use crate::components::{
 };
 use ratatui::style::Color;
 
-pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
-    object.pos.x = x;
-    object.pos.y = y;
-    object
-}
+// pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
+//     object.pos.x = x;
+//     object.pos.y = y;
+//     object
+// }
 
 pub fn stairs() -> Object {
     let name = String::from("Stairs");

@@ -251,12 +251,9 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
 
         // `g`rab the first item at player's location
         KeyCode::Char('g') => {
-            let player_pos = &app.objects.get(&PLAYER).unwrap().pos;
-            let id = app.gamemap.object_ids.iter().find(|x| {
-                let obj = &app.objects.get(x).unwrap();
-                obj.pos.x == player_pos.x && obj.pos.y == player_pos.y && obj.item.is_some()
-            });
-            match id {
+            let player_pos = &app.gamemap.get_position(PLAYER).unwrap();
+            let tile = app.gamemap.get_ref(player_pos.x, player_pos.y);
+            match tile.item {
                 Some(id) => {
                     inventory::pick_item_up(app, id.clone());
                     return Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME));
@@ -425,7 +422,7 @@ impl App {
             _ => {
                 // set default cursor location to player's position
                 self.game_screen = GameScreen::Examine {
-                    cursor: { self.objects.get(&PLAYER).unwrap().pos.clone() },
+                    cursor: { self.gamemap.get_position(PLAYER).unwrap() },
                 }
             }
         }

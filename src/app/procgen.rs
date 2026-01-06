@@ -6,7 +6,6 @@ use ratatui::style::Color;
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
 use crate::engine::get_blocking_object_id;
-use crate::entities::spawn;
 use crate::gamemap::{GameMap, Tile, TileType};
 use crate::{entities, los};
 
@@ -222,35 +221,48 @@ impl App {
                 *dungeon.get_mut(x, y) = Tile::new(TileType::Floor);
             }
 
-            if rooms.is_empty() {
-                // player starts in the first room
-                let position = &mut self.objects.get_mut(&PLAYER).unwrap().pos;
-                (position.x, position.y) = new_room.center();
-            } else {
+            if !rooms.is_empty() {
                 // dig tunnel between current room and previous
                 for (x, y) in tunnel_between(rooms.last().unwrap().center(), new_room.center()) {
                     *dungeon.get_mut(x, y) = Tile::new(TileType::Floor);
                 }
             }
 
+            rooms.push(new_room);
+        }
+
+        // generate contents in rooms
+        for room in &rooms {
             // loot tables for monsters and items
             let max_monsters = from_dungeon_level(MAX_MONSTERS_TABLE, dungeon.level);
             let max_items = from_dungeon_level(MAX_ITEMS_TABLE, dungeon.level);
 
             let monsters = monster_table(dungeon.level);
             let items = item_table(dungeon.level);
-            self.place_objects(&new_room, &mut dungeon, &monsters, max_monsters);
-            self.place_objects(&new_room, &mut dungeon, &items, max_items);
 
-            rooms.push(new_room);
+            // panic!(
+            //     "height: {}, width: {}, len: {}",
+            //     dungeon.height,
+            //     dungeon.width,
+            //     dungeon.tiles.len()
+            // );
+
+            // add these items to the gamemap
+            self.place_objects(&room, &mut dungeon, &monsters, max_monsters, false);
+            self.place_objects(&room, &mut dungeon, &items, max_items, true);
         }
 
+        // spawn player in the center of the first room
+        let first_room = rooms.first().unwrap();
+        let (player_x, player_y) = first_room.center();
+        dungeon.place_blocker(PLAYER, player_x, player_y);
+
+        // spawn the stairs in the center of the last room
         let last_room = rooms.last().unwrap();
         let (stairs_x, stairs_y) = last_room.center();
-        let id = self
-            .objects
-            .add(spawn(stairs_x, stairs_y, entities::stairs()));
-        dungeon.object_ids.push(id);
+        let stairs_id = self.objects.add(entities::stairs());
+        dungeon.place_item(stairs_id, stairs_x, stairs_y);
+        dungeon.object_ids.push(stairs_id);
 
         self.gamemap = dungeon;
     }
@@ -261,6 +273,7 @@ impl App {
         dungeon: &mut GameMap,
         object_weights: &Vec<(fn() -> Object, usize)>,
         maximum_objects: usize,
+        is_item: bool,
     ) {
         let mut rng = rand::rng();
         let dist = WeightedIndex::new(object_weights.iter().map(|x| x.1)).unwrap();
@@ -270,25 +283,50 @@ impl App {
             let x = rng.random_range((room.x1 + 1)..room.x2);
             let y = rng.random_range((room.y1 + 1)..room.y2);
 
+            // panic!(
+            //     "height: {}, width: {}, len: {}",
+            //     dungeon.height,
+            //     dungeon.width,
+            //     dungeon.tiles.len()
+            // );
+
             // check if it intersects with any entities
-            match get_blocking_object_id(self, x, y) {
-                Some(_) => {
-                    continue;
+            let tile = dungeon.get_ref(x, y);
+            if is_item {
+                match tile.item {
+                    Some(_) => {
+                        continue;
+                    }
+                    None => {}
                 }
-                None => {}
+            } else {
+                match tile.blocker {
+                    Some(_) => {
+                        continue;
+                    }
+                    None => {}
+                }
             }
 
             // randomly select which object to spawn
             let entity_callback = object_weights[dist.sample(&mut rng)].0;
 
-            let object = spawn(x, y, entity_callback());
+            let object = entity_callback();
             let has_ai = object.ai.is_some();
             let object_id = self.objects.add(object);
+
+            if is_item {
+                dungeon.place_item(object_id, x, y);
+            } else {
+                dungeon.place_blocker(object_id, x, y);
+            }
 
             // objects with an AI component should be added into the action queue
             if has_ai {
                 self.action_queue.push(Action {
                     // NOTE: 100 is magic number to ensure monsters don't double act on the first turn
+                    // ideally we should add something to the effect of how long it takes the
+                    // monster to take an action
                     time: self.time + 100,
                     id: object_id,
                 });
