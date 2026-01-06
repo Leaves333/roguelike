@@ -459,8 +459,6 @@ pub fn move_action(app: &mut App, id: usize, (target_x, target_y): (u16, u16)) {
         return; // destination is blocked by an object
     }
 
-    app.add_to_log(format!("move action for {id}"), Color::default());
-
     let pos = app.gamemap.get_position(id).unwrap();
     let obj = app.gamemap.remove_blocker(pos.x, pos.y);
     app.gamemap.place_blocker(obj, target_x, target_y);
@@ -514,8 +512,6 @@ pub fn bump_action(app: &mut App, id: usize, direction: InputDirection) {
         return; // destination is not in bounds
     }
     let (target_x, target_y) = ((pos.x as i16 + dx) as u16, (pos.y as i16 + dy) as u16);
-
-    app.add_to_log(format!("bump action for {id}"), Color::default());
 
     // decide which action to take
     match get_blocking_object_id(app, target_x, target_y) {
