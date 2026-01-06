@@ -163,7 +163,7 @@ impl App {
         Self {
             // NOTE: this is a dummy gamemap that should get overwritten when
             // loading or creating a new game
-            gamemap: GameMap::new(0, 0, 0, Vec::new()),
+            gamemap: GameMap::new(0, 0, 0),
 
             game_screen: GameScreen::Menu, // start the game on the main menu
             objects,

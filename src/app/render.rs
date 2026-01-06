@@ -11,7 +11,6 @@ use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, Renderable, SLOT_ORDERING},
     engine::{defense, power},
-    entities::player,
     gamemap::{self, Tile, TileType},
 };
 
@@ -443,10 +442,16 @@ impl App {
     fn get_objects_at_cursor(&self, cursor: &Position) -> Vec<String> {
         let mut names = Vec::new();
 
-        // TODO: refactor this to use the new tile system better
-        for id in self.gamemap.object_ids.iter() {
-            let obj = self.objects.get(id).unwrap();
-            if &self.gamemap.get_position(*id).unwrap() == cursor {
+        let tile = self.gamemap.get_ref(cursor.x, cursor.y);
+        if let Some(id) = tile.blocker {
+            let obj = self.objects.get(&id).unwrap();
+            if &self.gamemap.get_position(id).unwrap() == cursor {
+                names.push(&obj.name);
+            }
+        }
+        if let Some(id) = tile.item {
+            let obj = self.objects.get(&id).unwrap();
+            if &self.gamemap.get_position(id).unwrap() == cursor {
                 names.push(&obj.name);
             }
         }

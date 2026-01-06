@@ -194,9 +194,8 @@ const MAX_ITEMS_TABLE: &[Transition; 2] = &[
 impl App {
     /// replaces the current gamemap for the app with a new one
     pub fn generate_dungeon(&mut self, config: DungeonConfig) {
-        let mut dungeon = GameMap::new(config.width, config.height, config.level, Vec::new());
+        let mut dungeon = GameMap::new(config.width, config.height, config.level);
         let mut rooms: Vec<RectangularRoom> = Vec::new();
-        dungeon.object_ids.push(PLAYER); // player is currently in this gamemap
 
         let mut rng = rand::rng();
         for _ in 0..config.max_rooms {
@@ -262,7 +261,6 @@ impl App {
         let (stairs_x, stairs_y) = last_room.center();
         let stairs_id = self.objects.add(entities::stairs());
         dungeon.place_item(stairs_id, stairs_x, stairs_y);
-        dungeon.object_ids.push(stairs_id);
 
         self.gamemap = dungeon;
     }
@@ -335,9 +333,6 @@ impl App {
                     Color::default(),
                 );
             }
-
-            // let this floor of the dungeon own the object
-            dungeon.object_ids.push(object_id);
         }
     }
 }

@@ -11,27 +11,17 @@ pub fn pick_item_up(app: &mut App, id: usize) {
     if app.inventory.len() >= INVENTORY_SIZE {
         app.add_to_log(format!("Cannot hold that many items."), Color::default());
     } else {
-        let idx = app.gamemap.object_ids.iter().position(|&x| x == id);
-        match idx {
-            Some(x) => {
-                // add the item to the inventory
-                let item_id = app.gamemap.object_ids.swap_remove(x);
-                app.inventory.push(item_id);
+        // remove it from the map
+        let item_pos = app.gamemap.get_position(id).unwrap();
+        app.gamemap.remove_item(item_pos.x, item_pos.y);
 
-                // hide it on the map
-                let item_pos = app.gamemap.get_position(id).unwrap();
-                app.gamemap.remove_item(item_pos.x, item_pos.y);
+        // add the item to the inventory
+        app.inventory.push(id);
 
-                let item_obj = app.objects.get_mut(&item_id).unwrap();
-
-                // print message to the log
-                let message = format!("Picked up {}.", item_obj.name);
-                app.add_to_log(message, Color::default());
-            }
-            None => {
-                panic!("invalid object id passed to pick_item_up()!")
-            }
-        }
+        // print a message to log
+        let item_obj = app.objects.get(&id).unwrap();
+        let message = format!("Picked up {}.", item_obj.name);
+        app.add_to_log(message, Color::default());
     }
 }
 

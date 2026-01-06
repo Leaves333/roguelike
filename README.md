@@ -36,7 +36,9 @@ graphical i'll work on it later...
 - [ ] scroll along map edges in examine mode
 - [x] refactor player controls to return the amount of time the action took
     - instead of whether the player took a turn or not
-- [ ] rework items such that only one item can be on each tile
+- [x] rework items such that only one item can be on each tile
+- [ ] fix crash when generating dungeons when multiple items are placed on the
+same tile
 
 ## ideas:
 

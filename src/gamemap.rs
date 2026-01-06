@@ -1,4 +1,4 @@
-use std::panic;
+use std::{collections::HashMap, panic};
 
 use crate::{
     app::PLAYER,
@@ -84,20 +84,20 @@ pub fn idx_to_coords(idx: usize, width: u16) -> (u16, u16) {
 pub struct GameMap {
     pub width: u16,
     pub height: u16,
-    pub level: u16,
-    pub object_ids: Vec<usize>,
-    pub tiles: Vec<Tile>,
-    pub visible: Vec<bool>,
-    pub explored: Vec<bool>,
+    pub level: u16, // the "depth" of the dungeon floor, determining its difficulty
+    pub tiles: Vec<Tile>, // the tiles comprising the map of the dungeon
+    pub visible: Vec<bool>, // whether any given tile is visible
+    pub explored: Vec<bool>, // whether any given tile has been explored
+    objects: HashMap<usize, Position>, // objects present in this gamemap, mapped to their position
 }
 
 impl GameMap {
-    pub fn new(width: u16, height: u16, level: u16, object_ids: Vec<usize>) -> Self {
+    pub fn new(width: u16, height: u16, level: u16) -> Self {
         Self {
             width,
             height,
             level,
-            object_ids,
+            objects: HashMap::new(),
             tiles: vec![Tile::new(TileType::Wall); (width * height) as usize],
             visible: vec![false; (width * height) as usize],
             explored: vec![false; (width * height) as usize],
@@ -136,48 +136,13 @@ impl GameMap {
         return 0 <= x && x < self.width as i16 && 0 <= y && y < self.height as i16;
     }
 
-    // finds the position of an blocking object by its id
-    pub fn get_blocker_position(&self, id: usize) -> Option<Position> {
-        // loop through all tiles to find the object
-        // TODO: change this to use a cache
-        let mut ids = Vec::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let tile = self.get_ref(x, y);
-                if let Some(object_id) = tile.blocker {
-                    ids.push(object_id);
-                    if object_id == id {
-                        return Some(Position { x, y });
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    /// finds the position of an item by its id
-    pub fn get_item_position(&self, id: usize) -> Option<Position> {
-        // loop through all tiles to find the object
-        // TODO: change this to use a cache
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let tile = self.get_ref(x, y);
-                if let Some(object_id) = tile.item {
-                    if object_id == id {
-                        return Some(Position { x, y });
-                    }
-                }
-            }
-        }
-        None
-    }
-
     /// gets the position of either a blocker or item matching that id
     pub fn get_position(&self, id: usize) -> Option<Position> {
-        self.get_blocker_position(id).or(self.get_item_position(id))
+        self.objects.get(&id).copied()
     }
 
     /// gets the player's position. should be ok to unwrap since player should always exist
+    /// TODO: delete this function
     pub fn get_player_position(&self) -> Position {
         self.get_position(PLAYER).unwrap()
     }
@@ -188,6 +153,7 @@ impl GameMap {
         let tile = self.get_mut(x, y);
         if tile.is_walkable() && tile.blocker.is_none() {
             tile.blocker = Some(id);
+            self.objects.insert(id, Position { x, y });
         } else {
             panic!("failed to place blocker!")
         }
@@ -199,6 +165,7 @@ impl GameMap {
         let tile = self.get_mut(x, y);
         if tile.is_walkable() && tile.item.is_none() {
             tile.item = Some(id);
+            self.objects.insert(id, Position { x, y });
         } else {
             panic!("failed to place item!")
         }
@@ -211,6 +178,7 @@ impl GameMap {
         let tile = self.get_mut(x, y);
         if let Some(id) = tile.blocker {
             tile.blocker = None;
+            self.objects.remove(&id);
             id
         } else {
             panic!("failed to remove blocker!")
@@ -224,6 +192,7 @@ impl GameMap {
         let tile = self.get_mut(x, y);
         if let Some(id) = tile.item {
             tile.item = None;
+            self.objects.remove(&id);
             id
         } else {
             panic!("failed to remove item!")
