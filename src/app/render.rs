@@ -344,7 +344,7 @@ impl App {
                             self.tile_topmost_renderable(tile)
                         } else if self.gamemap.is_explored(x, y) {
                             Renderable {
-                                glyph: self.tile_topmost_renderable(tile).glyph,
+                                glyph: tile.renderable().glyph,
                                 fg: Color::DarkGray,
                                 bg: Color::Reset,
                             }
