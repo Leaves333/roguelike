@@ -1,13 +1,12 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
-use crate::app::procgen::DungeonConfig;
+use crate::{app::procgen::DungeonConfig, pathfinding::generate_simple_costs_array};
 use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
     app::{Action, App, GameScreen, PLAYER, VIEW_RADIUS},
     components::{AIType, DeathCallback, Item, MELEE_FORGET_TIME, MeleeAIData, Position},
-    gamemap::coords_to_idx,
     los,
     pathfinding::Pathfinder,
 };
@@ -414,21 +413,10 @@ pub fn handle_melee_ai(app: &mut App, id: usize) -> u64 {
     };
 
     // find path to the player
-    let mut costs = Vec::new();
-    costs.resize((app.gamemap.height * app.gamemap.width) as usize, 0);
-    for y in 0..app.gamemap.height {
-        for x in 0..app.gamemap.width {
-            if app.gamemap.get_ref(x, y).is_walkable() {
-                costs[coords_to_idx(x, y, app.gamemap.width)] += 1;
-            }
-        }
-    }
-
     let pathfinder = Pathfinder::new(
-        costs,
+        &app.gamemap,
+        generate_simple_costs_array(&app.gamemap),
         (monster_pos.x, monster_pos.y),
-        app.gamemap.width,
-        app.gamemap.height,
         2,
         3,
     );

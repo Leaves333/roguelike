@@ -1,13 +1,10 @@
 use rand::Rng;
 use rand::distr::Distribution;
 use rand::distr::weighted::WeightedIndex;
-use ratatui::style::Color;
 
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
-use crate::entities::{potion_cure_wounds, stairs};
 use crate::gamemap::{GameMap, Tile, TileType};
-use crate::inventory::drop_item;
 use crate::{entities, los};
 
 struct RectangularRoom {
@@ -252,13 +249,6 @@ impl App {
 
             let monsters = monster_table(dungeon.level);
             let items = item_table(dungeon.level);
-
-            // panic!(
-            //     "height: {}, width: {}, len: {}",
-            //     dungeon.height,
-            //     dungeon.width,
-            //     dungeon.tiles.len()
-            // );
 
             // add these items to the gamemap
             self.place_objects(&room, &mut dungeon, &monsters, max_monsters, false);

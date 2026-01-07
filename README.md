@@ -43,8 +43,10 @@ same tile
 - [ ] make examine mode more descriptive
     - [ ] add tooltips for items and enemies
 - [x] show last seen glyph in explored tiles
-- [ ] make items stack in inventory
-- [ ] drop items in an area around, if dropping directly isn't valid
+- [ ] make items stack in inventory?
+- [x] drop items in an area around, if dropping directly isn't valid
+- [ ] make enemies drop items on death
+- [ ] improve pathfinding behavior
 
 ## ideas:
 
