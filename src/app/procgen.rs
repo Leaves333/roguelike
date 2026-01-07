@@ -5,7 +5,9 @@ use ratatui::style::Color;
 
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
+use crate::entities::{potion_cure_wounds, stairs};
 use crate::gamemap::{GameMap, Tile, TileType};
+use crate::inventory::drop_item;
 use crate::{entities, los};
 
 struct RectangularRoom {

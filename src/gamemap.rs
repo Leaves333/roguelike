@@ -1,9 +1,15 @@
-use std::{collections::HashMap, panic};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    panic,
+};
 
 use crate::components::{Position, Renderable};
 
+use rand::{rng, seq::SliceRandom};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
+
+const ITEM_DROP_RADIUS: u16 = 2;
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum TileType {
@@ -201,7 +207,56 @@ impl GameMap {
         }
     }
 
-    /// attempts to drop an item at a given location, or somewhere nearby if possible
+    /// attempts to place an item at a given location, or somewhere nearby if possible
     /// returns the position that the item was added to
-    pub fn drop_item(&mut self, x: u16, y: u16) -> Option<Position> {}
+    pub fn area_place_item(&mut self, x: u16, y: u16, id: usize) -> Option<Position> {
+        let mut visited: HashSet<(u16, u16)> = HashSet::new();
+        let mut queue: VecDeque<(u16, u16)> = VecDeque::new();
+        queue.push_back((x, y));
+        visited.insert((x, y));
+
+        while !queue.is_empty() {
+            let (cur_x, cur_y) = queue.pop_front().unwrap();
+
+            // if its out of our target drop range, don't drop it
+            let dist = cur_x.abs_diff(x).max(cur_y.abs_diff(y));
+            if dist > ITEM_DROP_RADIUS {
+                continue;
+            }
+
+            // if the tile is not walkable, don't drop it
+            if !self.get_ref(cur_x, cur_y).is_walkable() {
+                continue;
+            }
+
+            // if there is space to drop it, drop at this location
+            let tile = self.get_mut(cur_x, cur_y);
+            if tile.item.is_none() {
+                self.place_item(id, cur_x, cur_y);
+                return Some(Position { x: cur_x, y: cur_y });
+            }
+
+            // directions are shuffled to add some randomness to how items drop
+            let mut dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+            let mut rng = rng();
+            dirs.shuffle(&mut rng);
+
+            for (dx, dy) in dirs {
+                let (new_x, new_y) = (cur_x as i16 + dx, cur_y as i16 + dy);
+                if !self.in_bounds(new_x, new_y) {
+                    continue;
+                }
+
+                let (new_x, new_y) = (new_x as u16, new_y as u16);
+                if visited.contains(&(new_x, new_y)) {
+                    continue;
+                }
+
+                visited.insert((new_x, new_y));
+                queue.push_back((new_x, new_y));
+            }
+        }
+
+        return None;
+    }
 }
