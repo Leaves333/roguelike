@@ -1,7 +1,10 @@
-use std::{cmp::Ordering, collections::BinaryHeap};
+use std::{
+    cmp::Ordering,
+    collections::{BinaryHeap, HashSet, VecDeque},
+};
 
 use crate::app::procgen::DungeonConfig;
-use rand::Rng;
+use rand::{Rng, rng, seq::SliceRandom};
 use ratatui::style::{Color, Style, Stylize};
 
 use crate::{
@@ -185,6 +188,50 @@ pub fn monster_death(app: &mut App, id: usize) {
     // monster.name = format!("remains of {}", monster.name);
 
     app.add_to_log(message, Color::Red);
+}
+
+const ITEM_DROP_RADIUS: u16 = 3;
+/// attempts to drop an item at a given location, or somewhere nearby if possible
+/// returns the position that the item was added to
+pub fn drop_item(app: &mut App, x: u16, y: u16) -> Option<Position> {
+    let mut visited: HashSet<(u16, u16)> = HashSet::new();
+    let mut queue: VecDeque<(u16, u16)> = VecDeque::new();
+    queue.push_back((x, y));
+    visited.insert((x, y));
+
+    while !queue.is_empty() {
+        let (cur_x, cur_y) = queue.pop_front().unwrap();
+
+        // if its out of our target drop range, don't drop it
+        let dist = cur_x.abs_diff(x).max(cur_y.abs_diff(y));
+        if dist > ITEM_DROP_RADIUS {
+            continue;
+        }
+
+        // if there is space to
+
+        // directions are shuffled to add some randomness to how items drop
+        let mut dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+        let mut rng = rng();
+        dirs.shuffle(&mut rng);
+
+        for (dx, dy) in dirs {
+            let (new_x, new_y) = (cur_x as i16 + dx, cur_y as i16 + dy);
+            if !app.gamemap.in_bounds(new_x, new_y) {
+                continue;
+            }
+
+            let (new_x, new_y) = (new_x as u16, new_y as u16);
+            if visited.contains(&(new_x, new_y)) {
+                continue;
+            }
+
+            visited.insert((new_x, new_y));
+            queue.push_back((new_x, new_y));
+        }
+    }
+
+    return None;
 }
 
 impl Item {

@@ -42,7 +42,9 @@ same tile
 - [ ] rework log format to be more consistent
 - [ ] make examine mode more descriptive
     - [ ] add tooltips for items and enemies
-- [ ] show last seen glyph in explored tiles
+- [x] show last seen glyph in explored tiles
+- [ ] make items stack in inventory
+- [ ] drop items in an area around, if dropping directly isn't valid
 
 ## ideas:
 

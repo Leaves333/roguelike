@@ -200,4 +200,8 @@ impl GameMap {
             panic!("failed to remove item!")
         }
     }
+
+    /// attempts to drop an item at a given location, or somewhere nearby if possible
+    /// returns the position that the item was added to
+    pub fn drop_item(&mut self, x: u16, y: u16) -> Option<Position> {}
 }
