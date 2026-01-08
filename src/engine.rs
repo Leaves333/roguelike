@@ -44,8 +44,9 @@ pub enum UseResult {
 }
 
 /// different targeting modes for targeted abilities
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum TargetingMode {
+    None,  // no targeting is needed to use this
     Smite, // smite target any enemy in line of sight
     Line,  // fire a projectile in a line at the target
 }
@@ -190,41 +191,70 @@ pub fn monster_death(app: &mut App, id: usize) {
     app.add_to_log(message, Color::Red);
 }
 
-impl Item {
-    pub fn needs_targeting(&self) -> bool {
-        match self {
-            Item::Lightning => true,
-            Item::Hexbolt => true,
-            _ => false,
+/// returns the id of the object at the targeted position, or None if no object there
+fn get_smite_target(app: &App, target: Position) -> Option<usize> {
+    app.gamemap.get_ref(target.x, target.y).blocker
+}
+
+/// returns a vector of targets hit by the line from player to target,
+/// stopping at the first wall encountered
+fn get_line_target(app: &App, target: Position) -> Vec<usize> {
+    let mut targets = Vec::new();
+
+    let player = app.gamemap.get_position(PLAYER).unwrap();
+    let path = los::bresenham(
+        (player.x as i32, player.y as i32),
+        (target.x as i32, target.y as i32),
+    );
+
+    let (_, path) = path.split_first().unwrap();
+    for (x, y) in path {
+        let (x, y) = (*x as u16, *y as u16);
+        let tile = app.gamemap.get_ref(x, y);
+        if !tile.is_walkable() {
+            break;
+        }
+        if let Some(id) = tile.blocker {
+            targets.push(id);
         }
     }
-    /// switches the game screen to the appropriate targeting mode for the item
-    pub fn on_targeting(&self, app: &mut App, inventory_idx: usize) {
-        // NOTE: need to check if item is targetable before calling this function!
-        if !self.needs_targeting() {
-            unreachable!()
+
+    return targets;
+}
+
+impl Item {
+    /// returns the targeting mode associated with this kind of item
+    pub fn targeting_mode(&self) -> TargetingMode {
+        match self {
+            Item::Equipment => TargetingMode::None,
+            Item::Heal => TargetingMode::None,
+            Item::Lightning => TargetingMode::Smite,
+            Item::Hexbolt => TargetingMode::Line,
         }
+    }
+
+    /// switches the game screen to the appropriate targeting mode for the item
+    /// should only be called if targeting mode is not None
+    pub fn on_targeting(&self, app: &mut App, inventory_idx: usize) {
+        // NOTE: need to check if item needs targeting before calling this function!
+        assert_ne!(
+            self.targeting_mode(),
+            TargetingMode::None,
+            "on targeting called for an item that doesn't need targeting!"
+        );
 
         let targeting_text = match self {
             Item::Lightning => String::from("Aim the bolt of lightning at what?"),
             Item::Hexbolt => String::from("Aim the hexbolt at what?"),
             _ => {
-                unreachable!()
-            }
-        };
-
-        let targeting_mode = match self {
-            Item::Lightning => TargetingMode::Smite,
-            Item::Hexbolt => TargetingMode::Line,
-            _ => {
-                unreachable!()
+                panic!("no targeting text defined for {:?}!", self)
             }
         };
 
         // all other cases, targeting is required
         let targeting = GameScreen::Targeting {
             cursor: app.gamemap.get_position(PLAYER).unwrap(),
-            targeting: targeting_mode,
+            targeting: self.targeting_mode(),
             text: targeting_text,
             inventory_idx,
         };
@@ -234,8 +264,8 @@ impl Item {
 
     /// callback to be used when the item is consumed
     pub fn on_use(&self, app: &mut App, target: Option<Position>) -> UseResult {
-        if self.needs_targeting() && target.is_none() {
-            panic!()
+        if self.targeting_mode() != TargetingMode::None && target.is_none() {
+            panic!("on_use() called on an item that needs a target, but no target was provided")
         }
 
         match self {
@@ -278,7 +308,7 @@ pub fn cast_heal(app: &mut App) -> UseResult {
 
 /// effects of a scroll of lightning. smites a chosen target within line of sight
 pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
-    let target_id = match get_blocking_object_id(app, target.x, target.y) {
+    let target_id = match get_smite_target(app, target) {
         Some(x) => {
             if x == PLAYER {
                 app.add_to_log(String::from("Can't target yourself!"), Color::default());
@@ -325,22 +355,14 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
 /// effects of a scroll of lightning. smites a chosen target within line of sight
 pub fn cast_hexbolt(app: &mut App, target: Position) -> UseResult {
     let player_pos = app.gamemap.get_position(PLAYER).unwrap();
-    let path = los::bresenham(
-        (player_pos.x as i32, player_pos.y as i32),
-        (target.x as i32, target.y as i32),
-    );
-
-    if path.len() == 1 {
+    if target == player_pos {
         app.add_to_log(String::from("Can't target yourself!"), Color::default());
         return UseResult::Cancelled;
     }
 
-    let (_, path) = path.split_first().unwrap();
-    let mut path = path
-        .iter()
-        .filter_map(|(x, y)| get_blocking_object_id(app, *x as u16, *y as u16));
-    let target_id = match path.nth(0) {
-        Some(x) => x,
+    let targets = get_line_target(app, target);
+    let target_id = match targets.iter().nth(0) {
+        Some(x) => x.clone(),
         None => {
             app.add_to_log(String::from("No enemies targeted."), Color::default());
             return UseResult::Cancelled;

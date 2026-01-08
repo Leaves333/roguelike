@@ -5,7 +5,8 @@ use ratatui::style::Color;
 
 use crate::components::SLOT_ORDERING;
 use crate::engine::{
-    InputDirection, UseResult, bump_action, go_down_stairs, handle_monster_turns, update_fov,
+    InputDirection, TargetingMode, UseResult, bump_action, go_down_stairs, handle_monster_turns,
+    update_fov,
 };
 use crate::inventory;
 
@@ -208,11 +209,7 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
             if app.inventory.len() > index {
                 let item = inventory::get_item_in_inventory(app, index).clone();
 
-                if item.needs_targeting() {
-                    // item needs targeting, switch to targeting mode
-                    item.on_targeting(app, index);
-                    return Some(PlayerAction::NoTimeTaken);
-                } else {
+                if item.targeting_mode() == TargetingMode::None {
                     // item can be used directly
                     let use_result = inventory::use_item(app, index, None);
                     return match use_result {
@@ -220,6 +217,10 @@ fn match_inventory_controls(app: &mut App, key: KeyEvent) -> Option<PlayerAction
                         UseResult::Equipped => Some(PlayerAction::TookTurn(PLAYER_ITEM_USE_TIME)),
                         UseResult::Cancelled => Some(PlayerAction::NoTimeTaken),
                     };
+                } else {
+                    // item needs targeting, switch to targeting mode
+                    item.on_targeting(app, index);
+                    return Some(PlayerAction::NoTimeTaken);
                 }
             }
         }

@@ -148,7 +148,7 @@ pub enum DeathCallback {
 
 /// represents information about an item.
 /// should not store persistent data, as this will get cloned
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Item {
     Heal,
     Lightning,

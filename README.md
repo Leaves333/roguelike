@@ -30,6 +30,7 @@ graphical i'll work on it later...
 - [ ] make items stack in inventory?
 - [ ] make enemies drop items on death
 - [ ] rewrite how targeting works
+    - [ ] add range to targeting
 
 ## ideas:
 

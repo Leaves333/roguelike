@@ -429,6 +429,9 @@ impl App {
         });
 
         match targeting {
+            TargetingMode::None => {
+                panic!("game screen was set to targeting, but targeting mode was None!")
+            }
             TargetingMode::Smite => {
                 self.render_examine_cursor(frame, area, cursor);
             }
