@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
-use crate::{app::procgen::DungeonConfig, pathfinding::generate_simple_costs_array};
+use crate::{
+    app::procgen::DungeonConfig, entities::player, pathfinding::generate_simple_costs_array,
+};
 use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
@@ -46,7 +48,8 @@ pub enum UseResult {
 /// different targeting modes for targeted abilities
 #[derive(PartialEq, Eq)]
 pub enum TargetingMode {
-    SmiteEnemy, // smite target any enemy in line of sight
+    Smite, // smite target any enemy in line of sight
+    Line,  // fire a projectile in a line at the target
 }
 
 /// returns the true power of an fighter, after factoring in bonuses
@@ -190,6 +193,7 @@ impl Item {
     pub fn needs_targeting(&self) -> bool {
         match self {
             Item::Lightning => true,
+            Item::Hexbolt => true,
             _ => false,
         }
     }
@@ -202,13 +206,15 @@ impl Item {
 
         let targeting_text = match self {
             Item::Lightning => String::from("Aim the bolt of lightning at what?"),
+            Item::Hexbolt => String::from("Aim the hexbolt at what?"),
             _ => {
                 unreachable!()
             }
         };
 
         let targeting_mode = match self {
-            Item::Lightning => TargetingMode::SmiteEnemy,
+            Item::Lightning => TargetingMode::Smite,
+            Item::Hexbolt => TargetingMode::Line,
             _ => {
                 unreachable!()
             }
@@ -234,6 +240,7 @@ impl Item {
         match self {
             Item::Heal => cast_heal(app),
             Item::Lightning => cast_lightning(app, target.unwrap()),
+            Item::Hexbolt => cast_hexbolt(app, target.unwrap()),
 
             // NOTE: logic for equipping items is in use_item, since removing the equipped item
             // from the inventory requires knowing the index it was stored in
@@ -297,6 +304,57 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
 
     let target_obj = app.objects.get(&target_id).unwrap();
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
+
+    if damage_dealt > 0 {
+        take_damage(app, target_id, damage_dealt as u16);
+        app.add_to_log(
+            format!("{} for {} damage.", attack_desc, damage_dealt),
+            Color::LightBlue,
+        );
+    } else {
+        app.add_to_log(
+            format!("{} but does no damage.", attack_desc),
+            Color::default(),
+        );
+    }
+
+    UseResult::UsedUp
+}
+
+/// effects of a scroll of lightning. smites a chosen target within line of sight
+pub fn cast_hexbolt(app: &mut App, target: Position) -> UseResult {
+    let player_pos = app.gamemap.get_position(PLAYER).unwrap();
+    let path = los::bresenham(
+        (player_pos.x as i32, player_pos.y as i32),
+        (target.x as i32, target.y as i32),
+    );
+
+    if path.len() == 1 {
+        app.add_to_log(String::from("Can't target yourself!"), Color::default());
+        return UseResult::Cancelled;
+    }
+
+    let (_, path) = path.split_first().unwrap();
+    let mut path = path
+        .iter()
+        .filter_map(|(x, y)| get_blocking_object_id(app, *x as u16, *y as u16));
+    let target_id = match path.nth(0) {
+        Some(x) => x,
+        None => {
+            app.add_to_log(String::from("No enemies targeted."), Color::default());
+            return UseResult::Cancelled;
+        }
+    };
+
+    if app.objects.get(&target_id).unwrap().fighter.is_none() {
+        panic!("trying to cast hexbolt, but target_id does not have a fighter component!")
+    }
+
+    const HEXBOLT_DAMAGE: i16 = 5;
+    let damage_dealt = damage(HEXBOLT_DAMAGE, defense(app, target_id));
+
+    let target_obj = app.objects.get(&target_id).unwrap();
+    let attack_desc = format!("The hexbolt blasts the {}", target_obj.name);
 
     if damage_dealt > 0 {
         take_damage(app, target_id, damage_dealt as u16);
@@ -511,12 +569,6 @@ pub fn bump_action(app: &mut App, id: usize, direction: InputDirection) {
 }
 
 pub fn get_blocking_object_id(app: &App, x: u16, y: u16) -> Option<usize> {
-    // for id in app.gamemap.object_ids.iter() {
-    //     let obj = &app.objects.get(id).unwrap();
-    //     if obj.blocks_movement && obj.pos.x == x && obj.pos.y == y {
-    //         return Some(id.clone());
-    //     }
-    // }
     app.gamemap.get_ref(x, y).blocker
 }
 

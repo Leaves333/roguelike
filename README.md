@@ -46,7 +46,7 @@ same tile
 - [ ] make items stack in inventory?
 - [x] drop items in an area around, if dropping directly isn't valid
 - [ ] make enemies drop items on death
-- [ ] improve pathfinding behavior
+- [x] improve pathfinding behavior
 
 ## ideas:
 

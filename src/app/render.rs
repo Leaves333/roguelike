@@ -10,8 +10,9 @@ use ratatui::{
 use super::{App, GameScreen, PLAYER};
 use crate::{
     components::{Position, Renderable, SLOT_ORDERING},
-    engine::{defense, power},
-    gamemap::{self, Tile, TileType},
+    engine::{TargetingMode, defense, power},
+    gamemap::{self, Tile, TileType, shroud_renderable},
+    los,
 };
 
 #[derive(Clone)]
@@ -263,12 +264,12 @@ impl App {
             GameScreen::Targeting {
                 ref cursor,
                 ref text,
+                ref targeting,
                 ..
             } => {
                 self.render_tiles(frame, world_layout[0]);
 
-                // TODO: render targeting line of fire overlay to world map
-                self.render_examine_cursor(frame, world_layout[0], &cursor);
+                self.render_targeting_overlay(frame, world_layout[0], &cursor, targeting);
                 self.render_targeting_info(frame, world_layout[1], &cursor, text);
             }
         }
@@ -316,6 +317,9 @@ impl App {
 
     /// render tiles in gamemap
     fn render_tiles(&self, frame: &mut Frame, area: layout::Rect) {
+        let title_block = Block::bordered().title("world");
+        frame.render_widget(title_block, area);
+
         let inner_area = area.inner(Margin {
             horizontal: 1,
             vertical: 1,
@@ -407,6 +411,72 @@ impl App {
             cell.set_bg(Color::Gray);
         } else {
             cell.set_bg(fg);
+        }
+    }
+
+    /// renders an overlay in the map based on the current targeting mode
+    fn render_targeting_overlay(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        cursor: &Position,
+        targeting: &TargetingMode,
+    ) {
+        // use inner_area because render_map() also renders to this
+        let inner_area = area.inner(Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+
+        match targeting {
+            TargetingMode::Smite => {
+                self.render_examine_cursor(frame, area, cursor);
+            }
+            TargetingMode::Line => {
+                // change all blank tiles along the line to '*', and highlights targets
+                let player_pos = self.gamemap.get_position(PLAYER).unwrap();
+                let path = los::bresenham(
+                    (player_pos.x as i32, player_pos.y as i32),
+                    (cursor.x as i32, cursor.y as i32),
+                );
+
+                if let Some(last) = path.last() {
+                    let coord = Position {
+                        x: last.0 as u16,
+                        y: last.1 as u16,
+                    };
+                    let offset_pos = relative_coords(inner_area, player_pos, coord).unwrap();
+                    let coords = (inner_area.x + offset_pos.x, inner_area.y + offset_pos.y);
+                    let buf = frame.buffer_mut();
+                    let cell = &mut buf[coords];
+
+                    cell.set_fg(Color::Black);
+                    cell.set_bg(Color::Magenta);
+                };
+
+                let (_, path) = path.split_first().unwrap();
+                for coord in path {
+                    let coord = Position {
+                        x: coord.0 as u16,
+                        y: coord.1 as u16,
+                    };
+                    let offset_pos = relative_coords(inner_area, player_pos, coord).unwrap();
+                    let coords = (inner_area.x + offset_pos.x, inner_area.y + offset_pos.y);
+                    let buf = frame.buffer_mut();
+                    let cell = &mut buf[coords];
+
+                    // if the cell looks like the floor or unseen, set the char to '*'
+                    if cell.symbol() == Tile::new(TileType::Floor).renderable().glyph.to_string()
+                        || cell.symbol() == shroud_renderable().glyph.to_string()
+                    {
+                        cell.set_symbol("*");
+                        cell.set_fg(Color::Magenta);
+                    } else {
+                        cell.set_fg(Color::Black);
+                        cell.set_bg(Color::Magenta);
+                    }
+                }
+            }
         }
     }
 

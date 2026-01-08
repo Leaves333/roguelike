@@ -163,6 +163,7 @@ pub enum DeathCallback {
 pub enum Item {
     Heal,
     Lightning,
+    Hexbolt,
     Equipment,
 }
 

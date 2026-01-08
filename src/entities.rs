@@ -6,12 +6,6 @@ use crate::components::{
 };
 use ratatui::style::Color;
 
-// pub fn spawn(x: u16, y: u16, mut object: Object) -> Object {
-//     object.pos.x = x;
-//     object.pos.y = y;
-//     object
-// }
-
 pub fn stairs() -> Object {
     let name = String::from("Stairs");
     let renderable = Renderable {
@@ -129,7 +123,7 @@ pub fn scroll_lightning() -> Object {
     let name = String::from("scroll of lightning");
     let renderable = Renderable {
         glyph: '?',
-        fg: Color::Blue,
+        fg: Color::Cyan,
         bg: Color::Reset,
     };
     let render_layer = RenderLayer::Item;
@@ -137,6 +131,20 @@ pub fn scroll_lightning() -> Object {
     let alive = false;
 
     Object::new(name, renderable, render_layer, blocks_movement, alive).set_item(Item::Lightning)
+}
+
+pub fn scroll_hexbolt() -> Object {
+    let name = String::from("scroll of hexbolt");
+    let renderable = Renderable {
+        glyph: '?',
+        fg: Color::Blue,
+        bg: Color::Reset,
+    };
+    let render_layer = RenderLayer::Item;
+    let blocks_movement = false;
+    let alive = false;
+
+    Object::new(name, renderable, render_layer, blocks_movement, alive).set_item(Item::Hexbolt)
 }
 
 pub fn weapon_dagger() -> Object {
