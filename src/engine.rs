@@ -1,8 +1,6 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
-use crate::{
-    app::procgen::DungeonConfig, entities::player, pathfinding::generate_simple_costs_array,
-};
+use crate::{app::procgen::DungeonConfig, pathfinding::generate_simple_costs_array};
 use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
@@ -143,7 +141,6 @@ pub fn take_damage(app: &mut App, id: usize, damage: u16) {
         }
 
         if fighter.hp <= 0 {
-            obj.alive = false;
             death_callback = Some(fighter.death_callback.clone());
         }
 
@@ -167,9 +164,13 @@ pub fn player_death(app: &mut App) {
     app.add_to_log(String::from("You died!"), Style::new().italic().red());
 }
 
+// callback to be run when a monster dies
 pub fn monster_death(app: &mut App, id: usize) {
     let monster = &mut app.objects.get_mut(&id).unwrap();
     let message = format!("{} dies!", monster.name);
+
+    // dead monsters don't have any ai
+    monster.ai = None;
 
     let monster_pos = app.gamemap.get_position(id).unwrap();
     app.gamemap.remove_blocker(monster_pos.x, monster_pos.y);
@@ -306,11 +307,11 @@ pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
     let attack_desc = format!("Lightning smites the {}", target_obj.name);
 
     if damage_dealt > 0 {
-        take_damage(app, target_id, damage_dealt as u16);
         app.add_to_log(
             format!("{} for {} damage.", attack_desc, damage_dealt),
             Color::LightBlue,
         );
+        take_damage(app, target_id, damage_dealt as u16);
     } else {
         app.add_to_log(
             format!("{} but does no damage.", attack_desc),
@@ -357,11 +358,11 @@ pub fn cast_hexbolt(app: &mut App, target: Position) -> UseResult {
     let attack_desc = format!("The hexbolt blasts the {}", target_obj.name);
 
     if damage_dealt > 0 {
-        take_damage(app, target_id, damage_dealt as u16);
         app.add_to_log(
             format!("{} for {} damage.", attack_desc, damage_dealt),
             Color::LightBlue,
         );
+        take_damage(app, target_id, damage_dealt as u16);
     } else {
         app.add_to_log(
             format!("{} but does no damage.", attack_desc),
@@ -399,10 +400,6 @@ pub fn perform_action(app: &mut App, action: Action) {
         }
         Some(x) => x,
     };
-
-    if !obj.alive {
-        return;
-    }
 
     let Some(ai_type) = &obj.ai else {
         return;

@@ -16,37 +16,20 @@ graphical i'll work on it later...
 
 ## goals
 
-- [x] make dungeon generation scale with level
-- [x] equipment
-- [x] redo rendering to be centered
-- [x] be able to drop items
-- [x] better turn and action system ???
-- [x] display player stats on left
 - [ ] particle effects after using skills
-- [x] improve line of sight algorithm
-- [x] display dungeon floor in status region
 - [ ] implement more targeting methods
 - [ ] work on adding content and game balance
     - [ ] more monsters
     - [ ] weapons with different attack speeds
     - [ ] damage types and resistances
-- [x] add timestamps to log messages
 - [ ] use json files to generate content procedurally
-- [x] fix bug of ghost enemies attacking the player
 - [ ] scroll along map edges in examine mode
-- [x] refactor player controls to return the amount of time the action took
-    - instead of whether the player took a turn or not
-- [x] rework items such that only one item can be on each tile
-- [x] fix crash when generating dungeons when multiple items are placed on the
-same tile
 - [ ] rework log format to be more consistent
 - [ ] make examine mode more descriptive
     - [ ] add tooltips for items and enemies
-- [x] show last seen glyph in explored tiles
 - [ ] make items stack in inventory?
-- [x] drop items in an area around, if dropping directly isn't valid
 - [ ] make enemies drop items on death
-- [x] improve pathfinding behavior
+- [ ] rewrite how targeting works
 
 ## ideas:
 
