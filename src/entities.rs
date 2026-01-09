@@ -7,7 +7,9 @@ use crate::components::{
 use ratatui::style::Color;
 
 pub fn stairs() -> Object {
-    let name = String::from("Stairs");
+    let name = "Stairs".to_string();
+    let tooltip = "stairs leading to the next floor".to_string();
+
     let renderable = Renderable {
         glyph: '>',
         fg: Color::Gray,
@@ -15,11 +17,13 @@ pub fn stairs() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
 }
 
 pub fn player() -> Object {
-    let name = String::from("Player");
+    let name = "Player".to_string();
+    let tooltip = "this is you :D".to_string();
+
     let renderable = Renderable {
         glyph: '@',
         fg: Color::default(),
@@ -27,7 +31,7 @@ pub fn player() -> Object {
     };
     let render_layer = RenderLayer::Blocking;
 
-    Object::new(name, renderable, render_layer).set_fighter({
+    Object::new(name, tooltip, renderable, render_layer).set_fighter({
         let max_hp = 20;
         let defense = 0;
         let power = 2;
@@ -36,7 +40,9 @@ pub fn player() -> Object {
 }
 
 pub fn orc() -> Object {
-    let name = String::from("Orc");
+    let name = "Orc".to_string();
+    let tooltip = "orcs are evil creatures :(".to_string();
+
     let renderable = Renderable {
         glyph: 'o',
         fg: Color::Red,
@@ -45,7 +51,7 @@ pub fn orc() -> Object {
     let render_layer = RenderLayer::Blocking;
     let ai_component = AIType::Melee(MeleeAIData::new());
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_fighter({
             let max_hp = 6;
             let defense = 0;
@@ -56,7 +62,9 @@ pub fn orc() -> Object {
 }
 
 pub fn rat() -> Object {
-    let name = String::from("Rat");
+    let name = "Rat".to_string();
+    let tooltip = "speedy evil creature".to_string();
+
     let renderable = Renderable {
         glyph: 'r',
         fg: Color::Yellow,
@@ -65,7 +73,7 @@ pub fn rat() -> Object {
     let render_layer = RenderLayer::Blocking;
     let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(75).set_attack_speed(75));
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_fighter({
             let max_hp = 5;
             let defense = 0;
@@ -76,7 +84,9 @@ pub fn rat() -> Object {
 }
 
 pub fn troll() -> Object {
-    let name = String::from("Troll");
+    let name = "Troll".to_string();
+    let tooltip = "slow and heavy creature".to_string();
+
     let renderable = Renderable {
         glyph: 'T',
         fg: Color::Green,
@@ -85,7 +95,7 @@ pub fn troll() -> Object {
     let render_layer = RenderLayer::Blocking;
     let ai_component = AIType::Melee(MeleeAIData::new().set_move_speed(150).set_attack_speed(150));
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_fighter({
             let max_hp = 10;
             let defense = 1;
@@ -96,7 +106,9 @@ pub fn troll() -> Object {
 }
 
 pub fn potion_cure_wounds() -> Object {
-    let name = String::from("potion of cure wounds");
+    let name = "potion of cure wounds".to_string();
+    let tooltip = "heals the player".to_string();
+
     let renderable = Renderable {
         glyph: '!',
         fg: Color::Magenta,
@@ -104,11 +116,13 @@ pub fn potion_cure_wounds() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer).set_item(Item::Heal)
+    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Heal)
 }
 
 pub fn scroll_lightning() -> Object {
-    let name = String::from("scroll of lightning");
+    let name = "scroll of lightning".to_string();
+    let tooltip = "smites an enemy with lightning".to_string();
+
     let renderable = Renderable {
         glyph: '?',
         fg: Color::Cyan,
@@ -116,11 +130,13 @@ pub fn scroll_lightning() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer).set_item(Item::Lightning)
+    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Lightning)
 }
 
 pub fn scroll_hexbolt() -> Object {
-    let name = String::from("scroll of hexbolt");
+    let name = "scroll of hexbolt".to_string();
+    let tooltip = "fires a hexbolt at an enemy, colliding with the first object".to_string();
+
     let renderable = Renderable {
         glyph: '?',
         fg: Color::Blue,
@@ -128,11 +144,13 @@ pub fn scroll_hexbolt() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer).set_item(Item::Hexbolt)
+    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Hexbolt)
 }
 
 pub fn weapon_dagger() -> Object {
-    let name = String::from("dagger");
+    let name = "dagger".to_string();
+    let tooltip = "a small dagger".to_string();
+
     let renderable = Renderable {
         glyph: '(',
         fg: Color::default(),
@@ -140,7 +158,7 @@ pub fn weapon_dagger() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_item(Item::Equipment)
         .set_equipment(Equipment {
             slot: Slot::Weapon,
@@ -150,7 +168,9 @@ pub fn weapon_dagger() -> Object {
 }
 
 pub fn weapon_longsword() -> Object {
-    let name = String::from("longsword");
+    let name = "longsword".to_string();
+    let tooltip = "a large longsword".to_string();
+
     let renderable = Renderable {
         glyph: '(',
         fg: Color::Blue,
@@ -158,7 +178,7 @@ pub fn weapon_longsword() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_item(Item::Equipment)
         .set_equipment(Equipment {
             slot: Slot::Weapon,
@@ -169,6 +189,8 @@ pub fn weapon_longsword() -> Object {
 
 pub fn helmet() -> Object {
     let name = String::from("helmet");
+    let tooltip = "a sturdy helmet".to_string();
+
     let renderable = Renderable {
         glyph: ']',
         fg: Color::default(),
@@ -176,7 +198,7 @@ pub fn helmet() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_item(Item::Equipment)
         .set_equipment(Equipment {
             slot: Slot::Head,
@@ -186,7 +208,9 @@ pub fn helmet() -> Object {
 }
 
 pub fn leather_armor() -> Object {
-    let name = String::from("leather armor");
+    let name = "leather armor".to_string();
+    let tooltip = "supple leather armor".to_string();
+
     let renderable = Renderable {
         glyph: '[',
         fg: Color::default(),
@@ -194,7 +218,7 @@ pub fn leather_armor() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_item(Item::Equipment)
         .set_equipment(Equipment {
             slot: Slot::Body,
@@ -204,7 +228,9 @@ pub fn leather_armor() -> Object {
 }
 
 pub fn plate_armor() -> Object {
-    let name = String::from("plate armor");
+    let name = "plate armor".to_string();
+    let tooltip = "sturdy plate armor".to_string();
+
     let renderable = Renderable {
         glyph: '[',
         fg: Color::Blue,
@@ -212,7 +238,7 @@ pub fn plate_armor() -> Object {
     };
     let render_layer = RenderLayer::Item;
 
-    Object::new(name, renderable, render_layer)
+    Object::new(name, tooltip, renderable, render_layer)
         .set_item(Item::Equipment)
         .set_equipment(Equipment {
             slot: Slot::Body,

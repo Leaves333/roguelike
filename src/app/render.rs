@@ -1,3 +1,5 @@
+use std::vec;
+
 use ratatui::{
     Frame,
     buffer::Buffer,
@@ -503,7 +505,7 @@ impl App {
     /// displays information about items under the examine cursor
     fn render_examine_info(&self, frame: &mut Frame, area: Rect, cursor: &Position) {
         let lines: Vec<Line> = self
-            .get_objects_at_cursor(cursor)
+            .get_description_at_cursor(cursor)
             .into_iter()
             .map(|x| Line::from(x))
             .collect();
@@ -517,7 +519,7 @@ impl App {
     fn render_targeting_info(&self, frame: &mut Frame, area: Rect, cursor: &Position, text: &str) {
         let mut lines = vec![Line::from(text)];
         lines.extend(
-            self.get_objects_at_cursor(cursor)
+            self.get_description_at_cursor(cursor)
                 .into_iter()
                 .map(|x| Line::from(x)),
         );
@@ -526,46 +528,42 @@ impl App {
         frame.render_widget(paragraph, area);
     }
 
-    /// returns a vec containing the names of objects at the cursor
+    /// returns the long description of an item, as a vector of lines
+    fn get_object_description(&self, id: usize) -> Vec<String> {
+        let object = self.objects.get(&id).unwrap();
+
+        let mut description = Vec::new();
+        description.push(object.name.clone());
+        description.push(object.tooltip.clone());
+
+        return description;
+    }
+
+    fn get_tile_description(&self, tile: &Tile) -> Vec<String> {
+        if *tile == Tile::new(TileType::Floor) {
+            return vec!["the floor".to_string()];
+        } else if *tile == Tile::new(TileType::Wall) {
+            return vec!["a wall".to_string()];
+        } else {
+            return vec!["unknown tile type. this is a bug".to_string()];
+        }
+    }
+
+    /// returns a vec containing the description of the item highlighted by the cursor
     /// to be used with render_examine() and render_targeting()
-    fn get_objects_at_cursor(&self, cursor: &Position) -> Vec<String> {
-        let mut names = Vec::new();
+    fn get_description_at_cursor(&self, cursor: &Position) -> Vec<String> {
+        if !self.gamemap.is_visible(cursor.x, cursor.y) {
+            return vec!["can't see this tile.".to_string()];
+        }
 
         let tile = self.gamemap.get_ref(cursor.x, cursor.y);
         if let Some(id) = tile.blocker {
-            let obj = self.objects.get(&id).unwrap();
-            if &self.gamemap.get_position(id).unwrap() == cursor {
-                names.push(&obj.name);
-            }
+            return self.get_object_description(id);
         }
         if let Some(id) = tile.item {
-            let obj = self.objects.get(&id).unwrap();
-            if &self.gamemap.get_position(id).unwrap() == cursor {
-                names.push(&obj.name);
-            }
+            return self.get_object_description(id);
         }
-
-        let mut formatted: Vec<String> = Vec::new();
-        formatted.push(format!("Things here:").into());
-
-        if names.len() == 0 {
-            if !self.gamemap.is_visible(cursor.x, cursor.y) {
-                formatted.push(format!("   you can't see this tile.").into());
-            } else {
-                let tile = self.gamemap.get_ref(cursor.x, cursor.y);
-                if *tile == Tile::new(TileType::Floor) {
-                    formatted.push(format!("   the floor.").into());
-                } else if *tile == Tile::new(TileType::Wall) {
-                    formatted.push(format!("   a wall.").into());
-                }
-            }
-        } else {
-            for name in names {
-                formatted.push(format!("   {}", name).into());
-            }
-        }
-
-        formatted
+        return self.get_tile_description(tile);
     }
 
     /// converts the log into a list of lines,

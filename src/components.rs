@@ -37,6 +37,7 @@ pub enum RenderLayer {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Object {
     pub name: String,              // name of this object
+    pub tooltip: String,           // description of this object
     pub renderable: Renderable,    // how this object looks on the map
     pub render_layer: RenderLayer, // priority on when to render this object
     pub fighter: Option<Fighter>,
@@ -47,9 +48,15 @@ pub struct Object {
 
 impl Object {
     /// constructs a new object with default position. sets all Option<_> fields to None by default.
-    pub fn new(name: String, renderable: Renderable, render_layer: RenderLayer) -> Self {
+    pub fn new(
+        name: String,
+        tooltip: String,
+        renderable: Renderable,
+        render_layer: RenderLayer,
+    ) -> Self {
         Self {
             name,
+            tooltip,
             renderable,
             render_layer,
             fighter: None,
