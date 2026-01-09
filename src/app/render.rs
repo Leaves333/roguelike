@@ -414,6 +414,40 @@ impl App {
         }
     }
 
+    /// marks the specified cell as targeted in the worldmap
+    /// targeted cells are highlighted magenta, and floor cells will change to '*'
+    fn mark_targeted(&self, frame: &mut Frame, area: Rect, target: &Position) {
+        let player_pos = self.gamemap.get_position(PLAYER).unwrap();
+        let offset_pos = relative_coords(area, player_pos, *target).unwrap();
+        let coords = (area.x + offset_pos.x, area.y + offset_pos.y);
+        let buf = frame.buffer_mut();
+        let cell = &mut buf[coords];
+
+        // if the cell looks like the floor or unseen, set the char to '*'
+        if cell.symbol() == Tile::new(TileType::Floor).renderable().glyph.to_string()
+            || cell.symbol() == shroud_renderable().glyph.to_string()
+        {
+            cell.set_symbol("*");
+            cell.set_fg(Color::Magenta);
+        } else {
+            cell.set_fg(Color::Black);
+            cell.set_bg(Color::Magenta);
+        }
+    }
+
+    /// marks the specified cell as the cursor for targeting mode
+    /// targeted cells will have its background set to magenta
+    fn mark_targeted_cursor(&self, frame: &mut Frame, area: Rect, target: &Position) {
+        let player_pos = self.gamemap.get_position(PLAYER).unwrap();
+        let offset_pos = relative_coords(area, player_pos, *target).unwrap();
+        let coords = (area.x + offset_pos.x, area.y + offset_pos.y);
+        let buf = frame.buffer_mut();
+        let cell = &mut buf[coords];
+
+        cell.set_fg(Color::Black);
+        cell.set_bg(Color::Magenta);
+    }
+
     /// renders an overlay in the map based on the current targeting mode
     fn render_targeting_overlay(
         &self,
@@ -443,42 +477,25 @@ impl App {
                     (cursor.x as i32, cursor.y as i32),
                 );
 
-                if let Some(last) = path.last() {
-                    let coord = Position {
-                        x: last.0 as u16,
-                        y: last.1 as u16,
-                    };
-                    let offset_pos = relative_coords(inner_area, player_pos, coord).unwrap();
-                    let coords = (inner_area.x + offset_pos.x, inner_area.y + offset_pos.y);
-                    let buf = frame.buffer_mut();
-                    let cell = &mut buf[coords];
-
-                    cell.set_fg(Color::Black);
-                    cell.set_bg(Color::Magenta);
+                let last = path.last().unwrap();
+                let last_pos = Position {
+                    x: last.0 as u16,
+                    y: last.1 as u16,
                 };
 
                 let (_, path) = path.split_first().unwrap();
                 for coord in path {
-                    let coord = Position {
+                    let pos = Position {
                         x: coord.0 as u16,
                         y: coord.1 as u16,
                     };
-                    let offset_pos = relative_coords(inner_area, player_pos, coord).unwrap();
-                    let coords = (inner_area.x + offset_pos.x, inner_area.y + offset_pos.y);
-                    let buf = frame.buffer_mut();
-                    let cell = &mut buf[coords];
-
-                    // if the cell looks like the floor or unseen, set the char to '*'
-                    if cell.symbol() == Tile::new(TileType::Floor).renderable().glyph.to_string()
-                        || cell.symbol() == shroud_renderable().glyph.to_string()
-                    {
-                        cell.set_symbol("*");
-                        cell.set_fg(Color::Magenta);
-                    } else {
-                        cell.set_fg(Color::Black);
-                        cell.set_bg(Color::Magenta);
+                    self.mark_targeted(frame, area, &pos);
+                    if !self.gamemap.get_ref(pos.x, pos.y).is_walkable() {
+                        break;
                     }
                 }
+
+                self.mark_targeted_cursor(frame, area, &last_pos);
             }
         }
     }
