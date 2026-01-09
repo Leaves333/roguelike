@@ -463,7 +463,8 @@ impl App {
                 panic!("game screen was set to targeting, but targeting mode was None!")
             }
             TargetingMode::Smite => {
-                self.render_examine_cursor(frame, area, cursor);
+                self.mark_targeted(frame, area, cursor);
+                self.mark_targeted_cursor(frame, area, cursor);
             }
             TargetingMode::Line => {
                 // change all blank tiles along the line to '*', and highlights targets
@@ -513,8 +514,9 @@ impl App {
     fn render_targeting_info(&self, frame: &mut Frame, area: Rect, cursor: &Position, text: &str) {
         let mut lines = vec![Line::from(text)];
         lines.extend(
-            self.get_description_at_cursor(cursor)
+            self.get_name_at_cursor(cursor)
                 .into_iter()
+                .map(|x| format!("    {}", x))
                 .map(|x| Line::from(x)),
         );
         let paragraph =
@@ -528,7 +530,7 @@ impl App {
 
         let mut description = Vec::new();
         description.push(object.name.clone());
-        description.push(object.tooltip.clone());
+        description.push(format!("    {}", object.tooltip.clone()));
 
         return description;
     }
@@ -543,7 +545,7 @@ impl App {
         }
     }
 
-    /// returns a vec containing the description of the item highlighted by the cursor
+    /// returns a vec containing the description of the object highlighted by the cursor
     /// to be used with render_examine() and render_targeting()
     fn get_description_at_cursor(&self, cursor: &Position) -> Vec<String> {
         if !self.gamemap.is_visible(cursor.x, cursor.y) {
@@ -551,11 +553,33 @@ impl App {
         }
 
         let tile = self.gamemap.get_ref(cursor.x, cursor.y);
+        let mut desc = Vec::new();
         if let Some(id) = tile.blocker {
-            return self.get_object_description(id);
+            desc.extend(self.get_object_description(id));
         }
         if let Some(id) = tile.item {
-            return self.get_object_description(id);
+            desc.extend(self.get_object_description(id));
+        }
+        if desc.is_empty() {
+            desc.extend(self.get_tile_description(tile));
+        }
+        return desc;
+    }
+
+    /// returns the name of the object highlighted at the cursor
+    fn get_name_at_cursor(&self, cursor: &Position) -> Vec<String> {
+        if !self.gamemap.is_visible(cursor.x, cursor.y) {
+            return vec!["can't see this tile.".to_string()];
+        }
+
+        let tile = self.gamemap.get_ref(cursor.x, cursor.y);
+        if let Some(id) = tile.blocker {
+            let obj = self.objects.get(&id).unwrap();
+            return vec![obj.name.clone()];
+        }
+        if let Some(id) = tile.item {
+            let obj = self.objects.get(&id).unwrap();
+            return vec![obj.name.clone()];
         }
         return self.get_tile_description(tile);
     }
