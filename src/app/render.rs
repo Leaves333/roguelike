@@ -458,12 +458,6 @@ impl App {
         cursor: &Position,
         targeting: &TargetingMode,
     ) {
-        // use inner_area because render_map() also renders to this
-        let inner_area = area.inner(Margin {
-            horizontal: 1,
-            vertical: 1,
-        });
-
         match targeting {
             TargetingMode::None => {
                 panic!("game screen was set to targeting, but targeting mode was None!")

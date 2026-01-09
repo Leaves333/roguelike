@@ -32,18 +32,22 @@ pub fn drop_item(app: &mut App, inventory_idx: usize) {
         return;
     }
 
-    // reshow the item on the map, and set its position to the player's position
+    // attempt to drop the item at the player
     let pos = app.gamemap.get_position(PLAYER).unwrap();
-    let tile = app.gamemap.get_ref(pos.x, pos.y);
-    if tile.item.is_some() {
-        app.add_to_log("No space to drop item.", Color::default());
-        return;
+    let id = app.inventory[inventory_idx];
+    let drop_loc = app.gamemap.area_place_item(pos.x, pos.y, id);
+
+    match drop_loc {
+        Some(_) => {
+            // succesfully dropped it, remove it from inventory
+            let item = app.objects.get(&id).unwrap();
+            app.add_to_log(format!("Dropped {}.", item.name), Color::default());
+            app.inventory.remove(inventory_idx);
+        }
+        None => {
+            app.add_to_log("No space to drop item.", Color::default());
+        }
     }
-
-    let item_id = app.inventory[inventory_idx];
-    app.gamemap.place_item(item_id, pos.x, pos.y);
-
-    app.inventory.remove(inventory_idx);
 }
 
 /// returns the item for a given index in the inventory
