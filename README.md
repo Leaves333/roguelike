@@ -25,8 +25,8 @@ graphical i'll work on it later...
 - [ ] use json files to generate content procedurally
 - [ ] scroll along map edges in examine mode
 - [ ] rework log format to be more consistent
-- [ ] make examine mode more descriptive
-    - [ ] add tooltips for items and enemies
+- [x] make examine mode more descriptive
+    - [x] add tooltips for items and enemies
 - [ ] make items stack in inventory?
 - [ ] make enemies drop items on death
 - [ ] rewrite how targeting works

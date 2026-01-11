@@ -105,48 +105,6 @@ pub fn troll() -> Object {
         .set_ai(ai_component)
 }
 
-pub fn potion_cure_wounds() -> Object {
-    let name = "potion of cure wounds".to_string();
-    let tooltip = "heals the player".to_string();
-
-    let renderable = Renderable {
-        glyph: '!',
-        fg: Color::Magenta,
-        bg: Color::Reset,
-    };
-    let render_layer = RenderLayer::Item;
-
-    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Heal)
-}
-
-pub fn scroll_lightning() -> Object {
-    let name = "scroll of lightning".to_string();
-    let tooltip = "smites an enemy with lightning".to_string();
-
-    let renderable = Renderable {
-        glyph: '?',
-        fg: Color::Cyan,
-        bg: Color::Reset,
-    };
-    let render_layer = RenderLayer::Item;
-
-    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Lightning)
-}
-
-pub fn scroll_hexbolt() -> Object {
-    let name = "scroll of hexbolt".to_string();
-    let tooltip = "fires a hexbolt at an enemy, colliding with the first object".to_string();
-
-    let renderable = Renderable {
-        glyph: '?',
-        fg: Color::Blue,
-        bg: Color::Reset,
-    };
-    let render_layer = RenderLayer::Item;
-
-    Object::new(name, tooltip, renderable, render_layer).set_item(Item::Hexbolt)
-}
-
 pub fn weapon_dagger() -> Object {
     let name = "dagger".to_string();
     let tooltip = "a small dagger".to_string();

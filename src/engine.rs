@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
-use crate::{app::procgen::DungeonConfig, pathfinding::generate_simple_costs_array};
+use crate::{app::procgen::DungeonConfig, items, pathfinding::generate_simple_costs_array};
 use rand::Rng;
 use ratatui::style::{Color, Style, Stylize};
 
@@ -192,13 +192,13 @@ pub fn monster_death(app: &mut App, id: usize) {
 }
 
 /// returns the id of the object at the targeted position, or None if no object there
-fn get_smite_target(app: &App, target: Position) -> Option<usize> {
+pub fn get_smite_target(app: &App, target: Position) -> Option<usize> {
     app.gamemap.get_ref(target.x, target.y).blocker
 }
 
 /// returns a vector of targets hit by the line from player to target,
 /// stopping at the first wall encountered
-fn get_line_target(app: &App, target: Position) -> Vec<usize> {
+pub fn get_line_target(app: &App, target: Position) -> Vec<usize> {
     let mut targets = Vec::new();
 
     let player = app.gamemap.get_position(PLAYER).unwrap();
@@ -229,6 +229,7 @@ impl Item {
             Item::Equipment => TargetingMode::None,
             Item::Heal => TargetingMode::None,
             Item::Lightning => TargetingMode::Smite,
+            Item::Fireball => todo!(),
             Item::Hexbolt => TargetingMode::Line,
         }
     }
@@ -269,130 +270,16 @@ impl Item {
         }
 
         match self {
-            Item::Heal => cast_heal(app),
-            Item::Lightning => cast_lightning(app, target.unwrap()),
-            Item::Hexbolt => cast_hexbolt(app, target.unwrap()),
+            Item::Heal => items::cast_cure_wounds(app),
+            Item::Lightning => items::cast_lightning(app, target.unwrap()),
+            Item::Hexbolt => items::cast_hexbolt(app, target.unwrap()),
+            Item::Fireball => todo!(),
 
             // NOTE: logic for equipping items is in use_item, since removing the equipped item
             // from the inventory requires knowing the index it was stored in
             Item::Equipment => UseResult::Equipped,
         }
     }
-}
-
-/// effects of a potion of healing. heals the player
-pub fn cast_heal(app: &mut App) -> UseResult {
-    let fighter = match &app.objects.get(&PLAYER).unwrap().fighter {
-        Some(x) => x,
-        None => {
-            panic!("trying to cast heal, but target_id does not have a fighter component!")
-        }
-    };
-
-    if fighter.hp == fighter.max_hp {
-        app.add_to_log(
-            String::from("You are already at full health."),
-            Color::default(),
-        );
-        UseResult::Cancelled
-    } else {
-        const HEAL_AMOUNT: u16 = 10;
-        heal(app, PLAYER, HEAL_AMOUNT);
-        app.add_to_log(
-            String::from("Your wounds start to close."),
-            Color::default(),
-        );
-        UseResult::UsedUp
-    }
-}
-
-/// effects of a scroll of lightning. smites a chosen target within line of sight
-pub fn cast_lightning(app: &mut App, target: Position) -> UseResult {
-    let target_id = match get_smite_target(app, target) {
-        Some(x) => {
-            if x == PLAYER {
-                app.add_to_log(String::from("Can't target yourself!"), Color::default());
-                return UseResult::Cancelled;
-            } else {
-                x
-            }
-        }
-        None => {
-            app.add_to_log(String::from("No targets there."), Color::default());
-            return UseResult::Cancelled;
-        }
-    };
-
-    let _fighter = match &app.objects.get(&target_id).unwrap().fighter {
-        Some(x) => x,
-        None => {
-            panic!("trying to cast lightning, but target_id does not have a fighter component!")
-        }
-    };
-
-    const LIGHTNING_DAMAGE: i16 = 8;
-    let damage_dealt = damage(LIGHTNING_DAMAGE, defense(app, target_id));
-
-    let target_obj = app.objects.get(&target_id).unwrap();
-    let attack_desc = format!("Lightning smites the {}", target_obj.name);
-
-    if damage_dealt > 0 {
-        app.add_to_log(
-            format!("{} for {} damage.", attack_desc, damage_dealt),
-            Color::LightBlue,
-        );
-        take_damage(app, target_id, damage_dealt as u16);
-    } else {
-        app.add_to_log(
-            format!("{} but does no damage.", attack_desc),
-            Color::default(),
-        );
-    }
-
-    UseResult::UsedUp
-}
-
-/// effects of a scroll of lightning. smites a chosen target within line of sight
-pub fn cast_hexbolt(app: &mut App, target: Position) -> UseResult {
-    let player_pos = app.gamemap.get_position(PLAYER).unwrap();
-    if target == player_pos {
-        app.add_to_log(String::from("Can't target yourself!"), Color::default());
-        return UseResult::Cancelled;
-    }
-
-    let targets = get_line_target(app, target);
-    let target_id = match targets.iter().nth(0) {
-        Some(x) => x.clone(),
-        None => {
-            app.add_to_log(String::from("No enemies targeted."), Color::default());
-            return UseResult::Cancelled;
-        }
-    };
-
-    if app.objects.get(&target_id).unwrap().fighter.is_none() {
-        panic!("trying to cast hexbolt, but target_id does not have a fighter component!")
-    }
-
-    const HEXBOLT_DAMAGE: i16 = 5;
-    let damage_dealt = damage(HEXBOLT_DAMAGE, defense(app, target_id));
-
-    let target_obj = app.objects.get(&target_id).unwrap();
-    let attack_desc = format!("The hexbolt blasts the {}", target_obj.name);
-
-    if damage_dealt > 0 {
-        app.add_to_log(
-            format!("{} for {} damage.", attack_desc, damage_dealt),
-            Color::LightBlue,
-        );
-        take_damage(app, target_id, damage_dealt as u16);
-    } else {
-        app.add_to_log(
-            format!("{} but does no damage.", attack_desc),
-            Color::default(),
-        );
-    }
-
-    UseResult::UsedUp
 }
 
 /// each monster whose next scheduled action is before the current time acts

@@ -160,6 +160,7 @@ pub enum Item {
     Heal,
     Lightning,
     Hexbolt,
+    Fireball,
     Equipment,
 }
 

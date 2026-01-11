@@ -5,7 +5,7 @@ use rand::distr::weighted::WeightedIndex;
 use crate::app::{Action, App, PLAYER};
 use crate::components::Object;
 use crate::gamemap::{GameMap, Tile, TileType};
-use crate::{entities, los};
+use crate::{entities, items, los};
 
 struct RectangularRoom {
     x1: u16,
@@ -170,9 +170,9 @@ fn item_table(level: u16) -> Vec<(fn() -> Object, usize)> {
     let plate_weight = from_dungeon_level(&[Transition { level: 5, value: 5 }], level);
 
     vec![
-        (entities::potion_cure_wounds, potion_weight),
-        (entities::scroll_lightning, lightning_weight),
-        (entities::scroll_hexbolt, hexbolt_weight),
+        (items::potion_cure_wounds, potion_weight),
+        (items::scroll_lightning, lightning_weight),
+        (items::scroll_hexbolt, hexbolt_weight),
         (entities::weapon_dagger, dagger_weight),
         (entities::weapon_longsword, longsword_weight),
         (entities::helmet, helmet_weight),

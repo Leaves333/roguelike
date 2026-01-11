@@ -6,6 +6,7 @@ mod engine;
 mod entities;
 mod gamemap;
 mod inventory;
+mod items;
 mod los;
 mod pathfinding;
 
