@@ -479,6 +479,7 @@ impl App {
                     x: last.0 as u16,
                     y: last.1 as u16,
                 };
+                self.mark_targeted_cursor(frame, area, &last_pos);
 
                 let (_, path) = path.split_first().unwrap();
                 for coord in path {
@@ -491,8 +492,55 @@ impl App {
                         break;
                     }
                 }
+            }
+            TargetingMode::LineExplosion { radius } => {
+                // change all blank tiles along the line to '*', and highlights targets
+                let player_pos = self.gamemap.get_position(PLAYER).unwrap();
+                let path = los::bresenham(
+                    (player_pos.x as i32, player_pos.y as i32),
+                    (cursor.x as i32, cursor.y as i32),
+                );
 
+                let last = path.last().unwrap();
+                let last_pos = Position {
+                    x: last.0 as u16,
+                    y: last.1 as u16,
+                };
                 self.mark_targeted_cursor(frame, area, &last_pos);
+
+                let (_, path) = path.split_first().unwrap();
+                let mut explosion_pos = Position { x: 0, y: 0 };
+                for coord in path {
+                    let pos = Position {
+                        x: coord.0 as u16,
+                        y: coord.1 as u16,
+                    };
+                    explosion_pos = pos;
+                    self.mark_targeted(frame, area, &pos);
+                    if !self.gamemap.get_ref(pos.x, pos.y).is_walkable() {
+                        break;
+                    }
+                }
+
+                // highlight explosion radius
+                let radius = *radius as i16;
+                for dx in -radius..=radius {
+                    for dy in -radius..=radius {
+                        let x = explosion_pos.x as i16 + dx;
+                        let y = explosion_pos.y as i16 + dy;
+                        if !self.gamemap.in_bounds(x, y) {
+                            break;
+                        }
+                        self.mark_targeted(
+                            frame,
+                            area,
+                            &Position {
+                                x: x as u16,
+                                y: y as u16,
+                            },
+                        );
+                    }
+                }
             }
         }
     }

@@ -181,3 +181,8 @@ pub fn scroll_fireball() -> Object {
 
     Object::new(name, tooltip, renderable, render_layer).set_item(Item::Fireball)
 }
+
+pub fn cast_fireball(app: &mut App, target: Position) -> UseResult {
+    todo!()
+    // UseResult::UsedUp
+}

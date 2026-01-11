@@ -46,9 +46,10 @@ pub enum UseResult {
 /// different targeting modes for targeted abilities
 #[derive(PartialEq, Eq, Debug)]
 pub enum TargetingMode {
-    None,  // no targeting is needed to use this
-    Smite, // smite target any enemy in line of sight
-    Line,  // fire a projectile in a line at the target
+    None,                          // no targeting is needed to use this
+    Smite,                         // smite target any enemy in line of sight
+    Line,                          // fire a projectile in a line at the target
+    LineExplosion { radius: u32 }, // fires a projectile that explodes at the first enemy
 }
 
 /// returns the true power of an fighter, after factoring in bonuses
@@ -229,7 +230,7 @@ impl Item {
             Item::Equipment => TargetingMode::None,
             Item::Heal => TargetingMode::None,
             Item::Lightning => TargetingMode::Smite,
-            Item::Fireball => todo!(),
+            Item::Fireball => TargetingMode::LineExplosion { radius: 1 },
             Item::Hexbolt => TargetingMode::Line,
         }
     }
@@ -247,6 +248,7 @@ impl Item {
         let targeting_text = match self {
             Item::Lightning => String::from("Aim the bolt of lightning at what?"),
             Item::Hexbolt => String::from("Aim the hexbolt at what?"),
+            Item::Fireball => String::from("Aim the fireball at what?"),
             _ => {
                 panic!("no targeting text defined for {:?}!", self)
             }
@@ -273,7 +275,7 @@ impl Item {
             Item::Heal => items::cast_cure_wounds(app),
             Item::Lightning => items::cast_lightning(app, target.unwrap()),
             Item::Hexbolt => items::cast_hexbolt(app, target.unwrap()),
-            Item::Fireball => todo!(),
+            Item::Fireball => items::cast_fireball(app, target.unwrap()),
 
             // NOTE: logic for equipping items is in use_item, since removing the equipped item
             // from the inventory requires knowing the index it was stored in
