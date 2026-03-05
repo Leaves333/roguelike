@@ -261,7 +261,7 @@ pub fn cast_heal(app: &mut App) -> UseResult {
         );
         UseResult::Cancelled
     } else {
-        const HEAL_AMOUNT: u16 = 10;
+        const HEAL_AMOUNT: u16 = 100;
         heal(app, PLAYER, HEAL_AMOUNT);
         app.add_to_log(
             String::from("Your wounds start to close."),
